@@ -1,8 +1,11 @@
-from layers import *
+from layers    import *
+from dialogs   import *
+from utils     import *
+from heightmap import *
 
 from tkMessageBox import *
-from Tkinter import *
-from PIL import Image, ImageTk
+from Tkinter      import *
+
 
 
 # The heigtmap generator main entry point class.
@@ -10,15 +13,19 @@ class HeightmapGenerator:
   def __init__(self):
     
     root = Tk()
-    
-    self.heightmap = None # Current heightmap. 
-    self.layers_factory = LayersFactory()
-    self.layers = {}
-    
     self.root = root
+    root.title("Heightmap generator")
+    root.tk.call('wm', 'iconphoto', root._w, loadImage("app.ico"))  
+        
+    
+    self.heightmap = Heightmap(10,10) # Current heightmap. 
+    self.layers_factory = LayersFactory() 
+    self.layers = {} # A dictionary mapping from layer name to a layer
+    self.current_layer = DummyLayer()
+    
     root["padx"] = 10
     root["pady"] = 4
-    root.geometry("800x600")
+    root.geometry("800x600+0+0")
     
     menu = Menu(root)
     self.menu = menu
@@ -29,24 +36,35 @@ class HeightmapGenerator:
     
     file_menu.add_command(label="New", command=self.newHeightmap)
   
-   
+    # Create left panel:
     self.left = Frame(root)
     self.left.pack(side=LEFT, fill=BOTH)
    
+    # Create right panel:
     self.right = Frame(root)
     self.right.pack(side=LEFT)
    
+    self.createHeightmapPane()
     self.createLayersPane()
     self.createLayersSettings()
     self.createActionButtons()
     self.createCanvas()
     
     
+  def createHeightmapPane(self):
+    hm_frame = LabelFrame(self.left, text="Heightmap")
+    hm_frame.pack(fill=X)
+
+    hm_width  = self.heightmap.getWidth()
+    hm_height = self.heightmap.getHeight()
+    dims_txt = "W:%d H:%d" % (hm_width, hm_height)
+    self.hm_dims = Label(hm_frame, text=dims_txt )
+    self.hm_dims.pack()
  
   def createLayersPane(self):
     # Create the layers-pane frame:
     layers = LabelFrame(self.left, text="Layers")
-    layers.pack(fill=Y)
+    layers.pack(fill=BOTH)
     
     ## Create layer buttons:
     new_layer = Button(layers, text="New layer")
@@ -61,20 +79,19 @@ class HeightmapGenerator:
     ## Create the layers list:
     layer_list = Listbox(layers, selectmode=SINGLE)
     self.layer_list = layer_list
-    layer_list.bind("<Double-Button-1>", self.displayLayerSettings)
+    layer_list.bind("<Double-Button-1>", self.changeCurrentLayer)
     layer_list.pack()
-    layer_list.insert(0, "First")
-    
+   
     ## Create layers moving buttons:
     ### First the frame that will make them align horizontal:
     up_down_frame = Frame(layers)
     up_down_frame.pack(fill=X)
     
-    up_button = Button(up_down_frame, text="/\\")
+    up_button = Button(up_down_frame, image=loadImage("layer_up.png"))
     up_button["command"] = self.moveLayerUp
     up_button.pack(side=LEFT, expand=YES)
     
-    down_button = Button(up_down_frame, text="\\/")
+    down_button = Button(up_down_frame, image=loadImage("layer_down.png"))
     down_button["command"] = self.moveLayerDown
     down_button.pack(side=LEFT, expand=YES)
     
@@ -83,16 +100,35 @@ class HeightmapGenerator:
   def createLayersSettings(self):
     layer_settings = LabelFrame(self.left, text = "Layer settings")
     self.layer_settings = layer_settings
+    layer_settings.pack(expand=YES, fill=BOTH)
+    
+    # Layer mode frame:
+    lm_frame = Frame(layer_settings)
+    lm_frame.pack()
+    
+    lm_label = Label(lm_frame, text="Layer mode:")
+    lm_label.pack(side=LEFT)
+    
+    self.layer_mode = StringVar(layer_settings)
+    self.layer_mode.set("Add")
+    lm_combo = OptionMenu(lm_frame, self.layer_mode,
+      "Add", "Subtract", "Multiply", "Divide", "Mix", "Dissolve",
+      command=self.setLayerMode
+      )
+    lm_combo.pack(side=LEFT)
+    
     self.ls_container = Frame(layer_settings)
     self.ls_container.pack()
-    layer_settings.pack(expand=YES, fill=BOTH)
     
   def createActionButtons(self):
     actions = LabelFrame(self.left, text="Actions")
     actions.pack(fill=X)
-    generate = Button(actions, text="GENERATE")
+    generate = Button(actions ,
+      text="Generate heightmap", image=loadImage("generate.png"), 
+      compound=LEFT)
+    generate["command"] = self.generateHeightmap
     generate.pack()
-  
+
   def createCanvas(self):
     # Create the right-pane frame:
     right = LabelFrame(self.root, text="Preview")
@@ -115,6 +151,8 @@ class HeightmapGenerator:
     
     self.heightmap = Heightmap(width, height)
       
+    self.hm_dims["text"] = "W:%d H:%d" % (width, height)
+      
   def newLayer(self):
     selection = self.layer_list.curselection()
     # Read the selection before we lose focus in the dialog
@@ -129,21 +167,43 @@ class HeightmapGenerator:
       self.layer_list.selection_set(idx) # Restoring the selection
       self.layers[new.name] = new
       
-  def displayLayerSettings(self, event):
-    self.ls_container.pack_forget()
-    self.ls_container.destroy()
-    ls_container = Frame(self.layer_settings)
-    self.ls_container = ls_container
-    ls_container.pack()
-    
+  # Change the current layer the user is working on.
+  # Fired by a double button press on the layers listbox.
+  def changeCurrentLayer(self, event):
     idx = self.layer_list.curselection()[0]
     layer_name = self.layer_list.get(idx)
     layer = self.layers[layer_name]
+    self.current_layer = layer
     
-    layer.layoutGUI(ls_container)
+    self.readLayerMode()
+    self.displayLayerSettings()
+
+  def readLayerMode(self):
+    l_mode = self.current_layer.getMode()
+    mode_name = l_mode.getName()
+    
+    self.layer_mode.set(mode_name)
+    
+  def setLayerMode(self, idx):
+    new_name = self.layer_mode.get()
+    new_mode = LayerMode.fromName(new_name)
+    
+    self.current_layer.setMode(new_mode)
+    
+  def displayLayerSettings(self):
+    self.ls_container.pack_forget()
+    self.ls_container.destroy()
+
+    ls_container = Frame(self.layer_settings)
+    self.ls_container = ls_container
+    ls_container.pack(fill=X)
+    
+    self.current_layer.layoutGUI(ls_container)
 
       
   def moveLayerDown(self):
+    selection =  self.layer_list.curselection()
+    if len(selection) == 0: return
     idx_old = self.layer_list.curselection()[0]
     idx_new = idx_old + 1
     
@@ -156,6 +216,8 @@ class HeightmapGenerator:
     self.layer_list.selection_set(idx_new)
     
   def moveLayerUp(self):
+    selection =  self.layer_list.curselection()
+    if len(selection) == 0: return
     idx_old = self.layer_list.curselection()[0]
     idx_new = idx_old - 1
 
@@ -166,209 +228,52 @@ class HeightmapGenerator:
     self.layer_list.delete(idx_old)
     self.layer_list.insert(idx_new, val)
     self.layer_list.selection_set(idx_new)
-    
-  
       
   def delLayer(self):
+    if not self.isLayerSelected(): return
     idx = self.layer_list.curselection()[0]
     self.layer_list.delete(idx)
   
   def start(self):
     self.root.mainloop()
 
-
-class Dialog():
-  def __init__(self, parent, title):
-    win = Toplevel(parent)
-    self.win = win
-    win.title(title)
-    win["padx"] = 10
-    win["pady"] = 10
-  
-    self.createControls()
-  
-    win.protocol("WM_DELETE_WINDOW", self.destroy)
-    win.focus_set()
-    win.grab_set()
-    parent.wait_window(win)
-  
-  def createControls(self):
-    pass
-
-  def destroy(self):
-    self.win.destroy()
-
-class TextDialog(Dialog):
-  def __init__(self, parent, title, message, value):
-    self.message = message
-    self.value   = value
-    self.OK = False
-    Dialog.__init__(self, parent, title)
-
-  def createControls(self):
-    entry_frame = Frame(self.win)
-    entry_frame.pack()
-    
-    label = Label(entry_frame, text=self.message)
-    label.pack()
-    entry = Entry(entry_frame, text=self.value)
-    self.entry = entry
-    entry.pack()
-    
-    buttons_frame = Frame(self.win)
-    buttons_frame.pack()
-    
-    ok_button = Button(buttons_frame, text="OK")
-    ok_button["command"] = self.ok
-    ok_button.pack(side=LEFT)
-    
-    cancel_button = Button(buttons_frame, text="CANCEL")
-    cancel_button["command"] = self.destroy
-    cancel_button.pack(side=LEFT)
+  def isLayerSelected(self):
+    sel = self.layer_list.curselection()
+    if len(sel) == 0: return False
+    else: return True
     
     
-  def ok(self):
-    self.value = self.entry.get()
-    self.OK = True
-    self.win.destroy()
-    
-  def getValue(self):
-    return self.value
-    
-
-class NewLayerDialog(Dialog):
-  def __init__(self, parent, layers_factory):
-    self.OK = False
-    self.layers_factory = layers_factory
-    self.new_layer = None # The new layer that will be created.
-    Dialog.__init__(self, parent, "New layer")
-  
-  def createControls(self):
-    # The top frame: 
-    tf = Frame(self.win)
-    tf.pack()
-    
-    ## The name entry:
-    nl = Label(tf, text="Layer name:")
-    nl.grid(row=0, column=0)
-    ne = Entry(tf)
-    self.name_entry = ne
-    ne.grid(row=0, column=1)
-    
-    
-    # The middle frame
-    bf = Frame(self.win)
-    self.middle_frame = bf
-    bf.pack(fill=X)
-
-    ## The type radiobuttons
-    self.type_idx = IntVar()
-    protos = self.layers_factory.getPrototypes()
-    for proto_idx in range(0, len(protos)):
-      proto = protos[proto_idx]
-      self.createTypeRadioButton(proto_idx, proto.getTypeName())
-    
-    ## The type description text widget:
-    type_desc = Message(bf, 
-      text="Please select layer type using the radio buttons above.\
-            The description of the selected type will display here.")
-    self.type_desc = type_desc
-    type_desc["borderwidth"] = 2
-    type_desc["relief"] = SOLID
-    type_desc["background"] = "white"
-    type_desc.pack(fill=X)
-    
-    
-    # The bottom frame (with OK and CANCEL buttons):
-    bbf = Frame(self.win)
-    bottom_frame = bbf
-    bbf.pack()
-    ok_button = Button(bbf, text="OK")
-    ok_button["command"] = self.ok
-    ok_button.pack(side=LEFT)
-    cancel_button = Button(bbf, text="Cancel")
-    cancel_button["command"] = self.destroy
-    cancel_button.pack(side=LEFT)
-    
-  def createTypeRadioButton(self, idx, type_name):
-    radio = Radiobutton(self.middle_frame, value=idx, text=type_name)
-    radio["command"] = self.typeChanged
-    radio.pack()
-  
-  def typeChanged(self):
-    idx = self.type_idx.get()
-    protos = self.layers_factory.getPrototypes()
-    proto = protos[idx]
-    self.type_desc["text"] = proto.getTypeDescription()
-    
-  def ok(self):
-    idx = self.type_idx.get()
-    protos = self.layers_factory.getPrototypes()
-    proto = protos[idx]
-    name = self.name_entry.get()
-    self.new_layer = proto.copy(0, name)
-    self.OK = True
-    self.destroy()
-    
-  def getNewLayer(self):
-    return self.new_layer
-
-
-# Dialog displayed when a new heightmap is created.
-class HeightmapDialog(Dialog):
-  def __init__(self, parent):
-    Dialog.__init__(self, parent, "New heightmap")
-    
-  def createControls(self):
-    self.width  = 0
-    self.height = 0
-    
-    # Width label and entry:
-    w_label = Label(self.win, text="Width:")
-    w_label.grid(row=0, column=0)      
-    w_entry = Entry(self.win)
-    w_entry.grid(row=0, column=1)
-    self.w_entry = w_entry
-    # Height label and entry:
-    h_label = Label(self.win, text="Height:")
-    h_label.grid(row=1, column=0)
-    h_entry = Entry(self.win)
-    h_entry.grid(row=1, column=1)
-    self.h_entry = h_entry
-    
-    # Ok button.  
-    ok_button = Button(self.win, text="OK")
-    ok_button["command"] = self.ok
-    ok_button.grid(columnspan=2)
-    
-    
-  def ok(self):
-    is_error = False
-    try:
-      self.width  = int(self.w_entry.get())
-      self.height = int(self.h_entry.get())
-    except ValueError as e:
-      is_error = True
-  
-    if(self.width < 1) or (self.height < 1):
-      is_error = True
-  
-    if is_error:
-      showerror(
-        "Invalid values", 
-        "The supported width and height values must be positive, \
-         non-zero integral values.")
+  def generateHeightmap(self):
+    l_list = self.layer_list.get(0,END)
+    n_layers = len(l_list)
+    if(n_layers) == 0: 
+      showwarning("No layers!", "Cannot generate heightmap - no layers defined.")
       return
-    else:
-      self.destroy()
-
-images = {}    
-def loadImage(path):
-  img = Image.open(path)
-  tk_img = ImageTk.PhotoImage(img)
-  images[path] = tk_img # Just keeping the reference to avoid GC (see ImageTk docs)
-  return tk_img
     
+    # Create the layers stack:
+    stack = LayerStack()
+    for idx in range(0, n_layers):
+      l_name = l_list[idx]
+      layer = self.layers[l_name]
+      layer.setIndex(idx)
+      stack.append(layer)
+    
+    layer = stack.get(0)
+    print("layer??? ", str(layer))
+    cumulative = self.heightmap.getInitialHeights()
+    
+    print("Generating:")
+    while layer != None:
+      print("layer:")
+      print(layer.getTypeName())
+      layer.apply(stack, cumulative)
+      layer = layer.getNext(stack)
+    
+    print("Cumulative:")
+    print(str(cumulative))
+    
+      
+
 if __name__ == "__main__":
   app = HeightmapGenerator()
   app.start()
