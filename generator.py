@@ -1,55 +1,78 @@
-from layers    import *
-from dialogs   import *
-from utils     import *
-from heightmap import *
+from __future__ import division
+from layers     import *
+from dialogs    import *
+from utils      import *
+from heightmap  import *
 
+from time         import *
 from tkMessageBox import *
 from Tkinter      import *
 
+from PIL import Image, ImageTk
 
 
 # The heigtmap generator main entry point class.
 class HeightmapGenerator:
   def __init__(self):
     
+    # Initialization:
+    ## Make the root window, so things will work correctly:
+    ## (the Tkinter variables: "IntVar", "StringVar", require
+    ## an existing Tk instance to be active)  
     root = Tk()
     self.root = root
     root.title("Heightmap generator")
     root.tk.call('wm', 'iconphoto', root._w, loadImage("app.ico"))  
-        
+    root["padx"] = 10
+    root["pady"] = 4
+    root.geometry("800x800+0+0")
     
-    self.heightmap = Heightmap(10,10) # Current heightmap. 
+    ## Some of the intance variables:
+    self.heightmap = Heightmap(200,200) # Current heightmap. 
     self.layers_factory = LayersFactory() 
     self.layers = {} # A dictionary mapping from layer name to a layer
     self.current_layer = DummyLayer()
+
+
+    # Creating the UI layout.
+    ## Create the menu for root window:
+    self.createWindowMenu()
+      
+    ## Create the top frame:
+    top_frame = Frame(root)
+    top_frame.pack(expand=YES, fill=BOTH)
+  
+    ## Create left panel:
+    self.left = Frame(top_frame)
+    self.left.pack(side=LEFT, fill=BOTH)
+    self.createHeightmapPane()
+    self.createLayersPane()
+    self.createLayersSettings()
+    self.createActionButtons()
+   
+    ## Create right panel:
+    self.right = Frame(top_frame)
+    self.right.pack(side=LEFT, fill=BOTH, expand=YES)
+    self.createCanvas()
     
-    root["padx"] = 10
-    root["pady"] = 4
-    root.geometry("800x600+0+0")
+    ## Create the status bar panel:
+    status_frame = Frame(root)
+    status_frame.pack(fill=BOTH)
+    self.status = Label(status_frame, text="Status bar.")
+    self.status.pack()
+
     
-    menu = Menu(root)
+  def createWindowMenu(self):
+    menu = Menu(self.root)
     self.menu = menu
-    root.config(menu=menu)
+    self.root.config(menu=menu)
     
     file_menu = Menu(menu)
     menu.add_cascade(menu=file_menu, label="File")
     
     file_menu.add_command(label="New", command=self.newHeightmap)
-  
-    # Create left panel:
-    self.left = Frame(root)
-    self.left.pack(side=LEFT, fill=BOTH)
-   
-    # Create right panel:
-    self.right = Frame(root)
-    self.right.pack(side=LEFT)
-   
-    self.createHeightmapPane()
-    self.createLayersPane()
-    self.createLayersSettings()
-    self.createActionButtons()
-    self.createCanvas()
     
+    file_menu.add_command(label="Exit", command=self.root.destroy)
     
   def createHeightmapPane(self):
     hm_frame = LabelFrame(self.left, text="Heightmap")
@@ -114,7 +137,7 @@ class HeightmapGenerator:
     lm_combo = OptionMenu(lm_frame, self.layer_mode,
       "Add", "Subtract", "Multiply", "Divide", "Mix", "Dissolve",
       command=self.setLayerMode
-      )
+    )
     lm_combo.pack(side=LEFT)
     
     self.ls_container = Frame(layer_settings)
@@ -131,10 +154,10 @@ class HeightmapGenerator:
 
   def createCanvas(self):
     # Create the right-pane frame:
-    right = LabelFrame(self.root, text="Preview")
-    right.pack(side=LEFT, fill=BOTH, expand=YES)
+    prev = LabelFrame(self.right, text="Preview")
+    prev.pack(side=LEFT, fill=BOTH, expand=YES)
     # Create the preview canvas:
-    canvas = Canvas(right)
+    canvas = Canvas(prev)
     self.canvas = canvas
     canvas["width"] = 500
     canvas["height"] = 500
@@ -155,17 +178,19 @@ class HeightmapGenerator:
       
   def newLayer(self):
     selection = self.layer_list.curselection()
-    # Read the selection before we lose focus in the dialog
-    if len(selection) == 1:
-      idx = selection[0]
+    n_selected = len(selection)
+    if n_selected > 0:
+      idx = selection[0] + 1 # For inserting after current layer.
     else: idx = 0
-    dialog = NewLayerDialog(self.root, self.layers_factory)
+    default_name = "Layer %d" % self.layer_list.size()
+    # Read the selection before we lose focus in the dialog
+    dialog = NewLayerDialog(self.root, self.layers_factory, default_name)
     # Here the list box lost focus, so I need to restore it afterwards the text was entered.
     if dialog.OK:
       new = dialog.getNewLayer()
-      self.layer_list.insert(idx, new.name)
+      self.layer_list.insert(idx, new.getName())
       self.layer_list.selection_set(idx) # Restoring the selection
-      self.layers[new.name] = new
+      self.layers[new.getName()] = new
       
   # Change the current layer the user is working on.
   # Fired by a double button press on the layers listbox.
@@ -198,7 +223,7 @@ class HeightmapGenerator:
     self.ls_container = ls_container
     ls_container.pack(fill=X)
     
-    self.current_layer.layoutGUI(ls_container)
+    self.current_layer.layoutGUI(ls_container, self.heightmap)
 
       
   def moveLayerDown(self):
@@ -250,6 +275,9 @@ class HeightmapGenerator:
       showwarning("No layers!", "Cannot generate heightmap - no layers defined.")
       return
     
+    
+    self.setStatus("Generating heightmap...")
+    
     # Create the layers stack:
     stack = LayerStack()
     for idx in range(0, n_layers):
@@ -259,20 +287,52 @@ class HeightmapGenerator:
       stack.append(layer)
     
     layer = stack.get(0)
-    print("layer??? ", str(layer))
     cumulative = self.heightmap.getInitialHeights()
     
-    print("Generating:")
     while layer != None:
-      print("layer:")
-      print(layer.getTypeName())
+      self.setStatus("Applying layer: \"%s\" ..." % layer.getName())
       layer.apply(stack, cumulative)
       layer = layer.getNext(stack)
     
-    print("Cumulative:")
-    print(str(cumulative))
+    self.setStatus("Heightmap generated. Generating preview...")
     
+    self.createPreview(cumulative)    
+  
+  def createPreview(self, arr2d):
+    self.setStatus("Normalizing heightmap for image coloring...")
+
+    norm = arr2d.makeNormalized()
+    
+    w = self.heightmap.getWidth()
+    h = self.heightmap.getHeight()
+    image = Image.new("RGBA", (w,h))
+    
+    self.setStatus("Creating image preview...")
+    
+    for x in range(0, w):
+      for y in range(0, h):
+        height = norm.get(x,y)
+        val = int(height * 255)
+        color = (val, val, val)
+        image.putpixel((x,y), color)
+        
+    self.setStatus("Resizing the image to fit the canvas bounds..,")
+    image = image.resize(
+      ( 1000, 1000 ), 
+      Image.NEAREST
+    )
       
+    photo_img = ImageTk.PhotoImage(image)
+    
+    
+    self.canvas.img = photo_img # Again keep that stupid reference
+    self.canvas.create_image(0,0, image=photo_img)
+    
+    self.setStatus("Done.")
+    
+  def setStatus(self, txt):
+    self.status["text"] = txt
+    self.root.update()
 
 if __name__ == "__main__":
   app = HeightmapGenerator()

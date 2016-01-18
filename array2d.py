@@ -1,6 +1,7 @@
 from __future__ import division
 from random import *
 from math   import *
+import sys
 # Heightmap generator. A prototype.
 
 class Interpolator():
@@ -26,7 +27,6 @@ class lerp(Interpolator):
 class slerp(Interpolator):
   def doInterpolation(self, v1, v2, t):
     d = (sin(t * pi - pi /2) / 2) + 0.5
-    print(d)
     val = v1 * (1 - d) + v2 * d
     return val
 
@@ -34,14 +34,23 @@ class Array2D():
   # Constructor.
   # It sets the initial values of the 2d array to zeros.  
   # w, h - ints - the width and heigh of the heightmap
-  def __init__(self, w , h): 
+  def __init__(self, w , h, other = None): 
     self.width = w
     self.height = h
     self.values = []
-    for x in range(0, w):
-      self.values.append([])
-      for y in range(0, h):
-        self.values[x].append(0)
+    
+    if other == None:
+      for x in range(0, w):
+        self.values.append([])
+        for y in range(0, h):
+          self.values[x].append(0)
+    else:
+      for x in range(0, w):
+        for y in range(0, h):
+          val = other.get(x,y)
+          self.set(x,y, val)
+          
+          
         
   def getWidth(self):
     return self.width
@@ -129,6 +138,32 @@ class Array2D():
     return other
 
 
+  def makeNormalized(self):
+    copied = Array2D(self.width, self.height)
+    
+    val_range = self.findMinMax()
+    delta = val_range[1] - val_range[0]
+    
+    for x in range(0, self.width):
+      for y in range(0, self.height):
+        val = self.get(x,y)
+        new_val = (val - val_range[0]) / delta
+        copied.set(x,y, new_val)
+        
+    return copied
+    
+    
+  def findMinMax(self):
+    val_min = sys.maxint
+    val_max = -sys.maxint - 1
+    for x in range(0, self.width):
+      for y in range(0, self.height):
+        val = self.get(x,y)
+        val_min = min(val, val_min)
+        val_max = max(val, val_max)
+        
+    return (val_min, val_max)
+
 def printSep(name):
   print("**************** " + name + " ****************" )
   print("")
@@ -170,10 +205,33 @@ def test2():
   
   print(iptd)
 
+
+def test3():
+  printSep("TEST 3")
+  a2d = Array2D(3,3)
+
+  def randomized(x, y, orig):
+    delta = randint(-10,10)
+    return orig + delta
+
+  a2d.each(randomized)
+  print(a2d)
+  
+  minmax = a2d.findMinMax()
+  
+  print(minmax)
+  
+  norm = a2d.makeNormalized()
+  
+  print(norm)
+
 if __name__ == "__main__":
   test0()
   test1()
   test2()  
-  
+  test3()
+   
+ 
+
 
 

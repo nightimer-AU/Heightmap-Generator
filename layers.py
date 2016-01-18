@@ -1,8 +1,12 @@
 from array2d import *
+from guis    import *
 
 from random  import *
 from Tkinter import *
 
+
+# Layer mode represents operation that is done on the 
+# the cumulative values of the current layer application.
 class LayerMode():
   def apply(self, val1, va2):
     pass
@@ -70,17 +74,25 @@ class MixLayerModel(LayerMode):
   def getName(self):
     return "Mix"
 
-        
+
+
+# The layers factory is a kind of registry kind object
+# that stores all the possible layer types in an array.        
 class LayersFactory():
   def __init__(self):
     prototypes = []
     self.prototypes = prototypes
-    prototypes.append(RandomValuesLayer(""))
+    prototypes.extend((
+      RandomValuesLayer(""),
+      RandomsInterpolatedLayer("")
+    ))
   
   def getPrototypes(self):
     return self.prototypes
 
 
+# The definition of a stack of layers used while generating
+# the heightmap.
 class LayerStack():
   def __init__(self):
     self.layers = []
@@ -98,6 +110,9 @@ class LayerStack():
     self.layers.append(layer)
     
 
+
+
+# Layer class - acts simlarly to a layer in graphical editing programs.
 class Layer():
   
   # Constructor - may be overriden.
@@ -106,12 +121,15 @@ class Layer():
     self.name  = name
     self.mode = AddLayerMode()
   
+  def getName(self):
+    return self.name
+  
   def setIndex(self, index):
     self.index = index
   
   # Layout gui interface for this layer controls.
   # Abstract method
-  def layoutGUI(parent):
+  def layoutGUI(parent, heightmap):
       pass
   
   def setMode(self, mode):
@@ -158,45 +176,37 @@ class Layer():
   
   def copy(self):
     return None
-    
+
+# Null object layer - used at the start of an application.
 class DummyLayer(Layer):
   def __init__(self):
     Layer.__init__(self, "Dummy layer")
+
+
   
 class RandomValuesLayer(Layer):
   
   def __init__(self, name):
     Layer.__init__(self, name)
+    self.seed_gui       = SeedingGUI()
+    self.random_gui = RandomizationGUI()
     
-    self.base  = 0
-    self.delta = 10
-    
-    
-  def layoutGUI(self, parent):
-    # Create the base level slider:
-    bs = Scale(parent, orient=HORIZONTAL, label="Base level:")
-    self.base_slider = bs
-    bs["command"] = self.updateBase
-    bs["from"] = -50
-    bs["to"]   = +50
-    bs.pack(fill=X)
-    
-    bs.set(self.base)
-    
-    # Create the delta value slider   
-    ds = Scale(parent, orient=HORIZONTAL, label="Delta:")
-    self.delta_slider = ds
-    ds["command"] = self.updateDelta
-    ds.pack(fill=X)
-    ds["from"] = 0
-    ds["to"]   = 10
-    ds.set(self.delta)
+  def layoutGUI(self, parent, heightmap=None):
+    self.seed_gui.layoutGUI(parent, heightmap)
+    self.random_gui.layoutGUI(parent, heightmap)
   
-  def updateBase(self, value):
-    self.base = int(value)
+  def getValues(self, stack, cumulative):
+    w = cumulative.getWidth()
+    h = cumulative.getHeight()
+    array = Array2D(w, h)
+    
+    array.each(self.randomizeArrayELement)
+    return array
   
-  def updateDelta(self, value):
-    self.delta = int(value)
+  def randomizeArrayElement(self, x, y, element):
+    upper = self.random_gui.base + self.random_gui.delta
+    lower = self.random_gui.base - self.random_gui.delta
+    return randint(lower, upper)
   
   def getTypeName(self):
     return "Random values layer."
@@ -207,29 +217,50 @@ class RandomValuesLayer(Layer):
       value with a spread given by a delta value.  \
       \n\nThe selected seed is the seed of the random numbers \
       used internally by the python random number generator."
-  
+    
   def copy(self, name):
     return RandomValuesLayer(name)
-  
+
+    
+# Interpolated layer makes a <resolution> spaced
+# array of random values, which it then interpolates 
+# over to a bigger array using selected interpolation.
+class RandomsInterpolatedLayer(RandomValuesLayer):
+  def __init__(self, name):
+    RandomValuesLayer.__init__(self, name)
+    self.interpolate_gui  = InterpolationGUI()
+    
+  def layoutGUI(self, parent, heightmap=None):
+    RandomValuesLayer.layoutGUI(self, parent, heightmap)
+    self.interpolate_gui.layoutGUI(parent, heightmap)
     
   def getValues(self, stack, cumulative):
+    res = self.interpolate_gui.resolution
+    initial_array = Array2D(res, res)
+    initial_array.each(self.randomizeArrayElement)    
+    
+    interoplation = self.interpolate_gui.createInterpolation()
     w = cumulative.getWidth()
     h = cumulative.getHeight()
-    array = Array2D(w, h)
-    array.each(self.randomize)
+    interpolated = initial_array.makeInterpolated(w,h, slerp())
+    interpolated.each(self.roundArrayElement)
+    return interpolated
     
-    print("array")
-    print(array)
-    return array
+  def roundArrayElement(self, x, y, value):
+    return round(value)
+  
     
+  def getTypeName(self):
+    return "Sine interpolated random layer "
     
-    
-  def randomize(self, x, y, element):
-    upper = self.base + self.delta
-    lower = self.base - self.delta
-    return randint(lower, upper)
-    
-    
-    
-    
-      
+  def getTypeDescription(self):
+    return \
+      "Sine interpolated layer makes a <resolution> spaced \
+      array of random values, which it then interpolates \
+      over to a bigger array using sinusoidal interpolation."
+
+  def copy(self, name):
+    return RandomsInterpolatedLayer(name)
+  
+
+

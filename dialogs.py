@@ -63,9 +63,10 @@ class TextDialog(Dialog):
     
 
 class NewLayerDialog(Dialog):
-  def __init__(self, parent, layers_factory):
+  def __init__(self, parent, layers_factory, default_layer_name):
     self.OK = False
     self.layers_factory = layers_factory
+    self.layer_name = default_layer_name
     self.new_layer = None # The new layer that will be created.
     Dialog.__init__(self, parent, "New layer")
   
@@ -79,8 +80,10 @@ class NewLayerDialog(Dialog):
     nl.grid(row=0, column=0)
     ne = Entry(tf)
     self.name_entry = ne
+    ne.insert(INSERT, self.layer_name)
+    ne.focus_set()
+    ne.selection_range(0,END)
     ne.grid(row=0, column=1)
-    
     
     # The middle frame
     bf = Frame(self.win)
@@ -117,7 +120,7 @@ class NewLayerDialog(Dialog):
     cancel_button.pack(side=LEFT)
     
   def createTypeRadioButton(self, idx, type_name):
-    radio = Radiobutton(self.middle_frame, value=idx, text=type_name)
+    radio = Radiobutton(self.middle_frame, value=idx, text=type_name, var=self.type_idx)
     radio["command"] = self.typeChanged
     radio.pack()
   
@@ -126,9 +129,13 @@ class NewLayerDialog(Dialog):
     protos = self.layers_factory.getPrototypes()
     proto = protos[idx]
     self.type_desc["text"] = proto.getTypeDescription()
+
     
   def ok(self):
     idx = self.type_idx.get()
+    
+    print(idx)
+    
     protos = self.layers_factory.getPrototypes()
     proto = protos[idx]
     name = self.name_entry.get()
@@ -149,23 +156,40 @@ class HeightmapDialog(Dialog):
     self.width  = 0
     self.height = 0
     
+    # Info label:
+    info = Label(self.win, text="Please enter the heightmap\n width and height:")
+    info.grid(row=0, columnspan=2)
+    
     # Width label and entry:
     w_label = Label(self.win, text="Width:")
-    w_label.grid(row=0, column=0)      
+    w_label.grid(row=1, column=0)      
     w_entry = Entry(self.win)
-    w_entry.grid(row=0, column=1)
     self.w_entry = w_entry
+    w_entry.insert(INSERT,"100")
+    w_entry.focus_set()
+    w_entry.grid(row=1, column=1, pady=4)
+    
     # Height label and entry:
     h_label = Label(self.win, text="Height:")
-    h_label.grid(row=1, column=0)
+    h_label.grid(row=2, column=0)
     h_entry = Entry(self.win)
-    h_entry.grid(row=1, column=1)
     self.h_entry = h_entry
+    h_entry.insert(INSERT, "100")
+    h_entry.grid(row=2, column=1)
     
-    # Ok button.  
-    ok_button = Button(self.win, text="OK")
+    # Buttons frame:
+    fr = Frame(self.win)
+    fr.grid(columnspan=2, pady=5)
+    
+    # Ok button:  
+    ok_button = Button(fr, text="OK")
     ok_button["command"] = self.ok
-    ok_button.grid(columnspan=2)
+    ok_button.pack(side=RIGHT)
+    
+    # Cancel button:
+    cl_button = Button(fr, text="Cancel")
+    cl_button["command"] = self.destroy
+    cl_button.pack(side=RIGHT)
     
     
   def ok(self):
