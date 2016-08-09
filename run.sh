@@ -1,1 +1,1 @@
-python generator.py
+python -u generator.py

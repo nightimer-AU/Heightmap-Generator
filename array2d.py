@@ -21,14 +21,52 @@ class Interpolator():
 class lerp(Interpolator):
   def doInterpolation(self, v1, v2, t):
     return \
-      v1 * (1 - t ) + \
-      v2 * (0 + t )
+      v1 * (1 - t) + \
+      v2 * (0 + t)
+      
+  def __str__(self):
+    return "Linear interpolator"
 
 class slerp(Interpolator):
   def doInterpolation(self, v1, v2, t):
     d = (sin(t * pi - pi /2) / 2) + 0.5
     val = v1 * (1 - d) + v2 * d
     return val
+
+
+# Inverse square interpolator:
+class invsqrlerp(Interpolator):
+  def doInterpolation(self, v1, v2, t):
+    start = -10
+    end   =  10
+    delta = end - start
+    val = start + t * delta
+    val *= abs(val)
+    val /= 200
+    val += 0.5
+    t = val
+    return \
+      v1 * (1 - t) + \
+      v2 * (0 + t)
+
+# Square interpolator:
+class sqrlerp(Interpolator):
+  def doInterpolation(self, v1, v2, t):
+    if t < 0.5:
+      start = 0
+      end   = 10
+      delta = end - start
+      val = (start + t * delta ) 
+      val *= abs(val)
+      val /= 200
+      val += 0.0
+      t = val
+    else:
+      start = 0
+    
+    return \
+      v1 * (1 - t) + \
+      v2 * (0 + t)
 
 class Array2D():
   # Constructor.
@@ -144,6 +182,8 @@ class Array2D():
     val_range = self.findMinMax()
     delta = val_range[1] - val_range[0]
     
+    if delta == 0: return copied
+    
     for x in range(0, self.width):
       for y in range(0, self.height):
         val = self.get(x,y)
@@ -164,25 +204,53 @@ class Array2D():
         
     return (val_min, val_max)
 
+
+
+from Tkinter import *
+
 def printSep(name):
   print("**************** " + name + " ****************" )
   print("")
 
 def test0():
-  printSep("TEST 0")
+  printSep("TEST 0 - INTERPOLATIONS")
+
+  print("Linear:")
   ipl = lerp()
   val = ipl.interpolate(0, 2, 0.75)
-  #print(val)
-  
+  print(val)
+
+  print("Sine:")
   ipl = slerp()
   val = ipl.interpolate(0 ,10, 0)
   val = ipl.interpolate(0 ,10, 0.5)
   val = ipl.interpolate(0 ,10, 1)
-  #print(val)
+  print(val)
 
+  print("Square:")
+  ipl = sqrlerp()
+  val = ipl.interpolate(0,10, 0.95)
+  print(val)
+  
+  
+  root = Tk()
+  canvas = Canvas(root, width=600, height=600)
+  canvas.pack()
+  
+  for i in range(0,100):
+    t = i / 100
+    x1 = i
+    x2 = x1 + 1
+    val1 = ipl.interpolate(0,150, t) 
+    val2 = ipl.interpolate(0,150, t + 1/100) 
+    canvas.create_line(x1, val1, x2, val2, fill="black")
+  
+  root.mainloop()
 
 def test1():
-  printSep("TEST 1")
+
+  
+  printSep("TEST 1 - ARRAY EACH")
   a2d = Array2D(3,3)
 
   def randomized(x, y, orig):
@@ -193,7 +261,7 @@ def test1():
   print(a2d)
 
 def test2():
-  printSep("TEST 2")  
+  printSep("TEST 2 - ARRAY INTERPOLATION")  
   a2d = Array2D(2,2)
 
   a2d.set(0,0, 0)
@@ -227,11 +295,12 @@ def test3():
 
 if __name__ == "__main__":
   test0()
-  test1()
-  test2()  
-  test3()
-   
- 
+  #test1()
+  #test2()  
+  #test3()
+
+
+
 
 
 

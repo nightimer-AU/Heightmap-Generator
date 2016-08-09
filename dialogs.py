@@ -1,4 +1,6 @@
 from layers import *
+
+from tkMessageBox import showerror
 from Tkinter import *
 
 from PIL import Image, ImageTk
@@ -37,8 +39,9 @@ class TextDialog(Dialog):
     
     label = Label(entry_frame, text=self.message)
     label.pack()
-    entry = Entry(entry_frame, text=self.value)
+    entry = Entry(entry_frame)
     self.entry = entry
+    entry.insert(INSERT, self.value)
     entry.pack()
     
     buttons_frame = Frame(self.win)
@@ -110,8 +113,8 @@ class NewLayerDialog(Dialog):
     
     # The bottom frame (with OK and CANCEL buttons):
     bbf = Frame(self.win)
-    bottom_frame = bbf
     bbf.pack()
+    
     ok_button = Button(bbf, text="OK")
     ok_button["command"] = self.ok
     ok_button.pack(side=LEFT)
@@ -120,7 +123,8 @@ class NewLayerDialog(Dialog):
     cancel_button.pack(side=LEFT)
     
   def createTypeRadioButton(self, idx, type_name):
-    radio = Radiobutton(self.middle_frame, value=idx, text=type_name, var=self.type_idx)
+    radio = Radiobutton(self.middle_frame, value=idx, 
+      text=type_name, var=self.type_idx)
     radio["command"] = self.typeChanged
     radio.pack()
   
@@ -157,7 +161,8 @@ class HeightmapDialog(Dialog):
     self.height = 0
     
     # Info label:
-    info = Label(self.win, text="Please enter the heightmap\n width and height:")
+    info = Label(self.win, 
+      text="Please enter the heightmap\n width and height:")
     info.grid(row=0, columnspan=2)
     
     # Width label and entry:
@@ -197,7 +202,7 @@ class HeightmapDialog(Dialog):
     try:
       self.width  = int(self.w_entry.get())
       self.height = int(self.h_entry.get())
-    except ValueError as e:
+    except ValueError:
       is_error = True
   
     if(self.width < 1) or (self.height < 1):

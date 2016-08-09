@@ -21,13 +21,19 @@ randomizer = random.Random()
 seeding_states = {}
 def setSeedNumber(new_seed):
   global seeding_states
+  
+  print(new_seed)
+  
   if new_seed in seeding_states:
     state = seeding_states[new_seed]
+    randomizer.seed(new_seed)
     randomizer.setstate(state)
+    print("retreiving seed")
   else:
     randomizer.seed(new_seed)
     state = randomizer.getstate()
     seeding_states[new_seed] = state
+    print("new seed")
   
 
 def getNextSeedInt(low, high):
