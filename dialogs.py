@@ -1,4 +1,6 @@
-from layers import *
+#from layers import *
+
+from layers.Layers import *
 
 from tkMessageBox import showerror
 from Tkinter import *

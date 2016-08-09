@@ -1,3 +1,9 @@
+
+
+from .RandomValuesLayer import RandomValuesLayer
+from .InterpolatedLayer import InterpolatedLayer
+from .SimplexLayer      import SimplexLayer
+
 ########################################
 # Layer factory that keeps prototypes of
 # layers, which are to be copied upon

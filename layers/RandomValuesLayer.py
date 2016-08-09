@@ -1,5 +1,9 @@
 from Layer import Layer
 
+from guis.SeedingGUI import SeedingGUI
+from guis.RangeGUI   import RangeGUI
+
+
 # Layer with random values
 class RandomValuesLayer(Layer):
   

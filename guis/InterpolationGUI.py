@@ -12,6 +12,7 @@ class InterpolationGUI():
     self.mode  = 2
     self.resolution = 2
     self.mode_var   = IntVar()
+    self.mode_var.set(2)
     
   def layoutGUI(self, parent, heightmap):
     w = heightmap.getWidth()
@@ -37,6 +38,7 @@ class InterpolationGUI():
     
   def createInterpolator(self):
     mode = self.mode_var.get()
+    print("Mode" + str(mode))
     if mode == 1: return lerp()
     if mode == 2: return slerp()
     

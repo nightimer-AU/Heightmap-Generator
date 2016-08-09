@@ -1,12 +1,9 @@
 from __future__ import division
 
 from array2d import *
-from guis.InterpolationGUI import *
-from guis.ClampGUI         import *
-from guis.ScaleGUI         import *
-from guis.SeedingGUI       import *
-
-from .LayerMode import *
+from ..guis.InterpolationGUI import *
+from ClampGUI         import *
+from ClampGUI         import *
 
 from utils   import *
 

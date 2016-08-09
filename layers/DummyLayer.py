@@ -1,3 +1,5 @@
+from .Layer import *
+
 # Null object layer - used at the start of an application.
 class DummyLayer(Layer):
   def __init__(self):

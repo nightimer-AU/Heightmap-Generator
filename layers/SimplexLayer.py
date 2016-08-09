@@ -1,3 +1,4 @@
+from .Layer import *
 
 
 class SimplexLayer(Layer):

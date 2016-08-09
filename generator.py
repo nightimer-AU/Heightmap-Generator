@@ -9,6 +9,7 @@ from Tkinter      import *
 
 from PIL import Image, ImageTk
 
+from layers.DummyLayer import *
 
 # The heigtmap generator main entry point class.
 class HeightmapGenerator:
@@ -406,8 +407,7 @@ class HeightmapGenerator:
     self.setStatus("Done.")
     
   def displayHeight(self, event):
-    print(event.x)
-    print(event.y)  
+    pass
     
   def setStatus(self, txt):
     self.status["text"] = txt

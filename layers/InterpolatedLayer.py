@@ -1,4 +1,7 @@
- 
+from .RandomValuesLayer import RandomValuesLayer
+
+from guis.InterpolationGUI import *    
+from guis.ClampGUI         import *
     
 # Interpolated layer makes a <resolution> spaced
 # array of random values, which it then interpolates 
@@ -50,7 +53,7 @@ class InterpolatedLayer(RandomValuesLayer):
     
     
   def getTypeName(self):
-    return "Sine interpolated random layer "
+    return "Interpolated layer "
     
   def getTypeDescription(self):
     return \
