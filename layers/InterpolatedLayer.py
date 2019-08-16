@@ -2,7 +2,8 @@ from .RandomValuesLayer import RandomValuesLayer
 
 from guis.InterpolationGUI import *    
 from guis.ClampGUI         import *
-    
+from utils								 import *   
+
 # Interpolated layer makes a <resolution> spaced
 # array of random values, which it then interpolates 
 # over to a bigger array using selected interpolation.
@@ -37,7 +38,15 @@ class InterpolatedLayer(RandomValuesLayer):
       
     
     return interpolated
-    
+   
+
+  def randomizeArrayElement(self, x, y, value):
+    base = self.range_gui.getBase()
+    delta = self.range_gui.getDelta()
+    min = base - delta
+    max = base + delta
+    return getNextSeedInt(min, max)
+
   def roundArrayValues(self, x, y, value):
     return round(value)
   

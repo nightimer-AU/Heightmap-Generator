@@ -8,6 +8,7 @@ from tkMessageBox import *
 from Tkinter      import *
 
 from PIL import Image, ImageTk
+import PIL
 
 from layers.DummyLayer import *
 
@@ -28,7 +29,7 @@ class HeightmapGenerator:
     root.geometry("800x800+0+0")
     
     ## Some of the intance variables:
-    self.heightmap = Heightmap(200,200) # Current heightmap. 
+    self.heightmap = Heightmap(100,100) # Current heightmap. 
     self.layers_factory = LayersFactory() 
     self.layers = {} # A dictionary mapping from layer name to a layer
     self.current_layer = DummyLayer()
@@ -381,7 +382,7 @@ class HeightmapGenerator:
     
     w = self.heightmap.getWidth()
     h = self.heightmap.getHeight()
-    image = Image.new("RGBA", (w,h))
+    image = PIL.Image.new("RGBA", (w,h))
     
     self.setStatus("Creating image preview...")
     
@@ -395,7 +396,7 @@ class HeightmapGenerator:
     self.setStatus("Resizing the image to fit the canvas bounds..,")
     image = image.resize(
       ( 1000, 1000 ), 
-      Image.NEAREST
+      PIL.Image.NEAREST
     )
       
     photo_img = ImageTk.PhotoImage(image)
