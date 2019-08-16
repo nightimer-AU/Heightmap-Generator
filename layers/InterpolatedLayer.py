@@ -40,17 +40,15 @@ class InterpolatedLayer(RandomValuesLayer):
     return interpolated
    
 
-  def randomizeArrayElement(self, x, y, value):
-    base = self.range_gui.getBase()
-    delta = self.range_gui.getDelta()
-    min = base - delta
-    max = base + delta
-    return getNextSeedInt(min, max)
+  def randomizeArrayElement(self, arr2d, x, y, value):
+    minimum = self.range_gui.getMinimum()
+    maximum = self.range_gui.getMaximum()
+    return getNextSeedInt(minimum, maximum)
 
-  def roundArrayValues(self, x, y, value):
+  def roundArrayValues(self, arr2d, x, y, value):
     return round(value)
   
-  def clampArrayValues(self, x, y, value):
+  def clampArrayValues(self, arr2d, x, y, value):
     top = self.clamp_gui.getTopValue()
     btm = self.clamp_gui.getBottomValue()
     

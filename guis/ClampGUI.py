@@ -13,8 +13,11 @@ class ClampGUI():
     self.min = min_val
     self.max = max_val
     
-    self.top_limit_var = IntVar()
     self.btm_limit_var = IntVar()
+    self.top_limit_var = IntVar()
+    
+    self.btm_limit_var.set(min_val)
+    self.top_limit_var.set(max_val)
     
     self.enabled_var = IntVar()
     
@@ -26,17 +29,19 @@ class ClampGUI():
         text="enabled", offvalue=0, onvalue=1, variable=self.enabled_var)
     self.enabled_checkbox.pack()
       
-    top_slider = Scale(frame, label="Top limit:", 
-      orient=HORIZONTAL, variable=self.top_limit_var, from_=self.min, to=self.max
-    )
-    self.top_slider = top_slider
-    top_slider.pack(fill=X)
     
     btm_slider = Scale(frame, label="Bottom limit:", 
       orient=HORIZONTAL, variable=self.btm_limit_var, from_=self.min, to=self.max
     )
     self.btm_slider = btm_slider
     btm_slider.pack(fill=X)
+
+    top_slider = Scale(frame, label="Top limit:", 
+      orient=HORIZONTAL, variable=self.top_limit_var, from_=self.min, to=self.max
+    )
+    self.top_slider = top_slider
+    top_slider.pack(fill=X)
+    
     
     
   def isEnabled(self):
@@ -50,17 +55,18 @@ class ClampGUI():
     
   def copy(self):
     gui = ClampGUI()
-    top = self.getTopValue()
-    btm = self.getBottomValue()
+    minimum = self.getBottomValue()
+    maximum = self.getTopValue()
     
     new_top_var = IntVar()
-    new_top_var.set(top)
+    new_top_var.set(maximum)
     
     new_btm_var = IntVar()
-    new_btm_var.set(btm)
+    new_btm_var.set(minimum)
 
-    gui.top_limit_var = new_top_var
     gui.btm_limit_var = new_btm_var
+    gui.top_limit_var = new_top_var
+    
     
     return gui
     

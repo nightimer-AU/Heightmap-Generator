@@ -1,381 +1,354 @@
-#!/usr/bin/python
-from math import floor, sqrt
+# Copyright (c) 2008, Casey Duncan (casey dot duncan at gmail dot com)
+# see LICENSE.txt for details
+
+"""Perlin noise -- pure python implementation"""
+
+__version__ = '$Id: perlin.py 521 2008-12-15 03:03:52Z casey.duncan $'
+
+from math import floor, fmod, sqrt
 from random import randint
-import sys
 
-# given floats x and y, generate noise values from -1.0 to 1.0.
-# 
-# coordinate.
+# 3D Gradient vectors
+_GRAD3 = ((1,1,0),(-1,1,0),(1,-1,0),(-1,-1,0), 
+	(1,0,1),(-1,0,1),(1,0,-1),(-1,0,-1), 
+	(0,1,1),(0,-1,1),(0,1,-1),(0,-1,-1),
+	(1,1,0),(0,-1,1),(-1,1,0),(0,-1,-1),
+) 
 
-# based on code at:
-# http://webstaff.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
-# bare-bones python port by Erik Osheim
+# 4D Gradient vectors
+_GRAD4 = ((0,1,1,1), (0,1,1,-1), (0,1,-1,1), (0,1,-1,-1), 
+	(0,-1,1,1), (0,-1,1,-1), (0,-1,-1,1), (0,-1,-1,-1), 
+	(1,0,1,1), (1,0,1,-1), (1,0,-1,1), (1,0,-1,-1), 
+	(-1,0,1,1), (-1,0,1,-1), (-1,0,-1,1), (-1,0,-1,-1), 
+	(1,1,0,1), (1,1,0,-1), (1,-1,0,1), (1,-1,0,-1), 
+	(-1,1,0,1), (-1,1,0,-1), (-1,-1,0,1), (-1,-1,0,-1), 
+	(1,1,1,0), (1,1,-1,0), (1,-1,1,0), (1,-1,-1,0), 
+	(-1,1,1,0), (-1,1,-1,0), (-1,-1,1,0), (-1,-1,-1,0))
 
-# TODO:
-# 2. measure performance of Gradient object vs tuple
-# 3. measure performance of math.floor vs manual floor
-# 4. clean up formatting/comments
-# 5. test performance
-# 6. consider generalizing to N dimensions
+# A lookup table to traverse the simplex around a given point in 4D. 
+# Details can be found where this table is used, in the 4D noise method. 
+_SIMPLEX = (
+	(0,1,2,3),(0,1,3,2),(0,0,0,0),(0,2,3,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,2,3,0), 
+	(0,2,1,3),(0,0,0,0),(0,3,1,2),(0,3,2,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,3,2,0), 
+	(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0), 
+	(1,2,0,3),(0,0,0,0),(1,3,0,2),(0,0,0,0),(0,0,0,0),(0,0,0,0),(2,3,0,1),(2,3,1,0), 
+	(1,0,2,3),(1,0,3,2),(0,0,0,0),(0,0,0,0),(0,0,0,0),(2,0,3,1),(0,0,0,0),(2,1,3,0), 
+	(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0), 
+	(2,0,1,3),(0,0,0,0),(0,0,0,0),(0,0,0,0),(3,0,1,2),(3,0,2,1),(0,0,0,0),(3,1,2,0), 
+	(2,1,0,3),(0,0,0,0),(0,0,0,0),(0,0,0,0),(3,1,0,2),(0,0,0,0),(3,2,0,1),(3,2,1,0))
 
-class Grad(object):
-    def __init__(self, x, y, z, w=0):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.w = w
-    def dot2(self, x, y):
-        return self.x * x + self.y * y
-    def dot3(self, x, y, z):
-        return self.x * x + self.y * y + self.z * z
-    def dot4(self, x, y, z, w):
-        return self.x * x + self.y * y + self.z * z + self.w * w
+# Simplex skew constants
+_F2 = 0.5 * (sqrt(3.0) - 1.0)
+_G2 = (3.0 - sqrt(3.0)) / 6.0
+_F3 = 1.0 / 3.0
+_G3 = 1.0 / 6.0
 
-class SimplexNoise(object):
-    # 2D/3D gradients
-    grad3 = [
-        Grad(1,1,0),Grad(-1,1,0),Grad(1,-1,0),Grad(-1,-1,0),
-        Grad(1,0,1),Grad(-1,0,1),Grad(1,0,-1),Grad(-1,0,-1),
-        Grad(0,1,1),Grad(0,-1,1),Grad(0,1,-1),Grad(0,-1,-1),
-    ]
 
-    # 4D gradients
-    grad4= [
-        Grad(0,1,1,1),Grad(0,1,1,-1),Grad(0,1,-1,1),Grad(0,1,-1,-1),
-        Grad(0,-1,1,1),Grad(0,-1,1,-1),Grad(0,-1,-1,1),Grad(0,-1,-1,-1),
-        Grad(1,0,1,1),Grad(1,0,1,-1),Grad(1,0,-1,1),Grad(1,0,-1,-1),
-        Grad(-1,0,1,1),Grad(-1,0,1,-1),Grad(-1,0,-1,1),Grad(-1,0,-1,-1),
-        Grad(1,1,0,1),Grad(1,1,0,-1),Grad(1,-1,0,1),Grad(1,-1,0,-1),
-        Grad(-1,1,0,1),Grad(-1,1,0,-1),Grad(-1,-1,0,1),Grad(-1,-1,0,-1),
-        Grad(1,1,1,0),Grad(1,1,-1,0),Grad(1,-1,1,0),Grad(1,-1,-1,0),
-        Grad(-1,1,1,0),Grad(-1,1,-1,0),Grad(-1,-1,1,0),Grad(-1,-1,-1,0),
-    ]
+class BaseNoise:
+	"""Noise abstract base class"""
 
-    # Skewing and unskewing factors for 2, 3, and 4 dimensions
-    F2 = 0.5*(sqrt(3.0)-1.0);
-    G2 = (3.0-sqrt(3.0))/6.0;
-    F3 = 1.0/3.0;
-    G3 = 1.0/6.0;
-    F4 = (sqrt(5.0)-1.0)/4.0;
-    G4 = (5.0-sqrt(5.0))/20.0;
+	permutation = (151,160,137,91,90,15, 
+		131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23, 
+		190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33, 
+		88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166, 
+		77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244, 
+		102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196, 
+		135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123, 
+		5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42, 
+		223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9, 
+		129,22,39,253,9,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228, 
+		251,34,242,193,238,210,144,12,191,179,162,241, 81,51,145,235,249,14,239,107, 
+		49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254, 
+		138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180)
 
-    def __init__(self):
-        self.reseed()
+	period = len(permutation)
 
-    def reseed(self):
-        # 256 values from 0-255
-        p = [randint(0, 255) for x in xrange(0, 256)]
-    
-        # To remove the need for index wrapping, double the permutation table length
-        self.perm = [p[i & 255] for i in range(0, 512)]
-        self.permMod12 = [p[i & 255] % 12 for i in range(0, 512)]
+	# Double permutation array so we don't need to wrap
+	permutation = permutation * 2
 
-    # 2D simplex noise
-    def noise2d(self, xin, yin):
-        n0 = n1 = n2 = 0.0 # Noise contributions from the three corners
-        # Skew the input space to determine which simplex cell we're in
-        s = (xin + yin) * self.F2; # Hairy factor for 2D
-        i = int(floor(xin + s))
-        j = int(floor(yin + s))
-        t = (i+j)*self.G2;
-        X0 = i-t; # Unskew the cell origin back to (x,y) space
-        Y0 = j-t;
-        x0 = xin-X0; # The x,y distances from the cell origin
-        y0 = yin-Y0;
+	randint_function = randint
 
-        # For the 2D case, the simplex shape is an equilateral triangle.
-        # Determine which simplex we are in.
+	def __init__(self, period=None, permutation_table=None, randint_function=None):
+		"""Initialize the noise generator. With no arguments, the default
+		period and permutation table are used (256). The default permutation
+		table generates the exact same noise pattern each time.
+		
+		An integer period can be specified, to generate a random permutation
+		table with period elements. The period determines the (integer)
+		interval that the noise repeats, which is useful for creating tiled
+		textures.  period should be a power-of-two, though this is not
+		enforced. Note that the speed of the noise algorithm is indpendent of
+		the period size, though larger periods mean a larger table, which
+		consume more memory.
 
-        # Offsets for second (middle) corner of simplex in (i,j) coords
-        if(x0>y0):
-            # lower triangle, XY order: (0,0)->(1,0)->(1,1)
-            i1=1
-            j1=0
-        else:
-            # upper triangle, YX order: (0,0)->(0,1)->(1,1)
-            i1=0
-            j1=1      
+		A permutation table consisting of an iterable sequence of whole
+		numbers can be specified directly. This should have a power-of-two
+		length. Typical permutation tables are a sequnce of unique integers in
+		the range [0,period) in random order, though other arrangements could
+		prove useful, they will not be "pure" simplex noise. The largest
+		element in the sequence must be no larger than period-1.
 
-        # A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
-        # a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
-        # c = (3-sqrt(3))/6
-        x1 = x0 - i1 + self.G2; # Offsets for middle corner in (x,y) unskewed coords
-        y1 = y0 - j1 + self.G2;
-        x2 = x0 - 1.0 + 2.0 * self.G2; # Offsets for last corner in (x,y) unskewed coords
-        y2 = y0 - 1.0 + 2.0 * self.G2;
-        # Work out the hashed gradient indices of the three simplex corners
-        ii = i & 255;
-        jj = j & 255;
-        gi0 = self.permMod12[ii+self.perm[jj]];
-        gi1 = self.permMod12[ii+i1+self.perm[jj+j1]];
-        gi2 = self.permMod12[ii+1+self.perm[jj+1]];
-        # Calculate the contribution from the three corners
-        t0 = 0.5 - x0*x0-y0*y0;
-        if(t0 >= 0):
-            # (x,y) of grad3 used for 2D gradient
-            t0 *= t0;
-            n0 = t0 * t0 * self.grad3[gi0].dot2(x0, y0)
+		period and permutation_table may not be specified together.
 
-        t1 = 0.5 - x1*x1-y1*y1;
-        if(t1 >= 0):
-            t1 *= t1;
-            n1 = t1 * t1 * self.grad3[gi1].dot2(x1, y1)
+		A substitute for the method random.randint(a, b) can be chosen. The
+		method must take two integer parameters a and b and return an integer N
+		such that a <= N <= b.
+		"""
+		if randint_function is not None:  # do this before calling randomize()
+			if not hasattr(randint_function, '__call__'):
+				raise TypeError(
+					'randint_function has to be a function')
+			self.randint_function = randint_function
+			if period is None:
+				period = self.period  # enforce actually calling randomize()
+		if period is not None and permutation_table is not None:
+			raise ValueError(
+				'Can specify either period or permutation_table, not both')
+		if period is not None:
+			self.randomize(period)
+		elif permutation_table is not None:
+			self.permutation = tuple(permutation_table) * 2
+			self.period = len(permutation_table)
 
-        t2 = 0.5 - x2*x2-y2*y2;
-        if(t2 >= 0):
-            t2 *= t2;
-            n2 = t2 * t2 * self.grad3[gi2].dot2(x2, y2)
+	def randomize(self, period=None):
+		"""Randomize the permutation table used by the noise functions. This
+		makes them generate a different noise pattern for the same inputs.
+		"""
+		if period is not None:
+			self.period = period
+		perm = list(range(self.period))
+		perm_right = self.period - 1
+		for i in list(perm):
+			j = self.randint_function(0, perm_right)
+			perm[i], perm[j] = perm[j], perm[i]
+		self.permutation = tuple(perm) * 2
 
-        # Add contributions from each corner to get the final noise value.
-        # The result is scaled to return values in the interval [-1,1].
-        return 70.0 * (n0 + n1 + n2);
 
-    # 3D simplex noise
-    def noise3d(self, xin, yin, zin):
-        n0 = n1 = n2 = n3 = 0.0; # Noise contributions from the four corners
-        # Skew the input space to determine which simplex cell we're in
-        s = (xin+yin+zin)*self.F3; # Very nice and simple skew factor for 3D
-        i = floor(xin+s);
-        j = floor(yin+s);
-        k = floor(zin+s);
-        t = (i+j+k)*self.G3;
-        X0 = i-t; # Unskew the cell origin back to (x,y,z) space
-        Y0 = j-t;
-        Z0 = k-t;
-        x0 = xin-X0; # The x,y,z distances from the cell origin
-        y0 = yin-Y0;
-        z0 = zin-Z0;
-        # For the 3D case, the simplex shape is a slightly irregular tetrahedron.
-        # Determine which simplex we are in.
-        i1, j1, k1; # Offsets for second corner of simplex in (i,j,k) coords
-        i2, j2, k2; # Offsets for third corner of simplex in (i,j,k) coords
-        if(x0>=y0):
-            if(y0>=z0):
-                i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; # X Y Z order
-            elif(x0>=z0):
-                i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; # X Z Y order
-            else:
-                i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; # Z X Y order
-      
-        else:
-            # x0<y0
-            if(y0<z0):
-                i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; # Z Y X order
-            elif(x0<z0):
-                i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; # Y Z X order
-            else:
-                i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; # Y X Z order
+class SimplexNoise(BaseNoise):
+	"""Perlin simplex noise generator
 
-        # A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
-        # a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
-        # a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
-        # c = 1/6.
-        x1 = x0 - i1 + self.G3; # Offsets for second corner in (x,y,z) coords
-        y1 = y0 - j1 + self.G3;
-        z1 = z0 - k1 + self.G3;
-        x2 = x0 - i2 + 2.0*self.G3; # Offsets for third corner in (x,y,z) coords
-        y2 = y0 - j2 + 2.0*self.G3;
-        z2 = z0 - k2 + 2.0*self.G3;
-        x3 = x0 - 1.0 + 3.0*self.G3; # Offsets for last corner in (x,y,z) coords
-        y3 = y0 - 1.0 + 3.0*self.G3;
-        z3 = z0 - 1.0 + 3.0*self.G3;
-        # Work out the hashed gradient indices of the four simplex corners
-        ii = i & 255;
-        jj = j & 255;
-        kk = k & 255;
-        gi0 = self.permMod12[ii+self.perm[jj+self.perm[kk]]];
-        gi1 = self.permMod12[ii+i1+self.perm[jj+j1+self.perm[kk+k1]]];
-        gi2 = self.permMod12[ii+i2+self.perm[jj+j2+self.perm[kk+k2]]];
-        gi3 = self.permMod12[ii+1+self.perm[jj+1+self.perm[kk+1]]];
-        # Calculate the contribution from the four corners
-        t0 = 0.6 - x0*x0 - y0*y0 - z0*z0;
-        if(t0 >= 0):
-            t0 *= t0;
-            n0 = t0 * t0 * self.grad3[gi0].dot3(x0, y0, z0)
+	Adapted from Stefan Gustavson's Java implementation described here:
 
-        t1 = 0.6 - x1*x1 - y1*y1 - z1*z1;
-        if(t1 >= 0):
-            t1 *= t1;
-            n1 = t1 * t1 * self.grad3[gi1].dot3(x1, y1, z1)
+	http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf
 
-        t2 = 0.6 - x2*x2 - y2*y2 - z2*z2;
-        if(t2 >= 0):
-            t2 *= t2;
-            n2 = t2 * t2 * self.grad3[gi2].dot3(x2, y2, z2)
+	To summarize:
 
-        t3 = 0.6 - x3*x3 - y3*y3 - z3*z3;
-        if(t3 >= 0):
-            t3 *= t3;
-            n3 = t3 * t3 * self.grad3[gi3].dot3(x3, y3, z3)
+	"In 2001, Ken Perlin presented 'simplex noise', a replacement for his classic
+	noise algorithm.  Classic 'Perlin noise' won him an academy award and has
+	become an ubiquitous procedural primitive for computer graphics over the
+	years, but in hindsight it has quite a few limitations.  Ken Perlin himself
+	designed simplex noise specifically to overcome those limitations, and he
+	spent a lot of good thinking on it. Therefore, it is a better idea than his
+	original algorithm. A few of the more prominent advantages are: 
 
-        # Add contributions from each corner to get the final noise value.
-        # The result is scaled to stay just inside [-1,1]
-        return 32.0*(n0 + n1 + n2 + n3);
+	* Simplex noise has a lower computational complexity and requires fewer
+	  multiplications. 
+	* Simplex noise scales to higher dimensions (4D, 5D and up) with much less
+	  computational cost, the complexity is O(N) for N dimensions instead of 
+	  the O(2^N) of classic Noise. 
+	* Simplex noise has no noticeable directional artifacts.  Simplex noise has 
+	  a well-defined and continuous gradient everywhere that can be computed 
+	  quite cheaply. 
+	* Simplex noise is easy to implement in hardware."
+	"""
 
-    # 4D simplex noise, better simplex rank ordering method 2012-03-09
-    def noise4d(self, x, y, z, w):
-    
-        n0 = n1 = n2 = n3 = n4 = 0.0; # Noise contributions from the five corners
-        # Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
-        s = (x + y + z + w) * self.F4; # Factor for 4D skewing
-        i = floor(x + s);
-        j = floor(y + s);
-        k = floor(z + s);
-        l = floor(w + s);
-        t = (i + j + k + l) * self.G4; # Factor for 4D unskewing
-        X0 = i - t; # Unskew the cell origin back to (x,y,z,w) space
-        Y0 = j - t;
-        Z0 = k - t;
-        W0 = l - t;
-        x0 = x - X0;  # The x,y,z,w distances from the cell origin
-        y0 = y - Y0;
-        z0 = z - Z0;
-        w0 = w - W0;
-        # For the 4D case, the simplex is a 4D shape I won't even try to describe.
-        # To find out which of the 24 possible simplices we're in, we need to
-        # determine the magnitude ordering of x0, y0, z0 and w0.
-        # Six pair-wise comparisons are performed between each possible pair
-        # of the four coordinates, and the results are used to rank the numbers.
-        rankx = 0;
-        ranky = 0;
-        rankz = 0;
-        rankw = 0;
-        if(x0 > y0):
-            rankx += 1
-        else:
-            ranky += 1;
-        if(x0 > z0):
-            rankx += 1
-        else:
-            rankz += 1;
-        if(x0 > w0):
-            rankx += 1
-        else:
-            rankw += 1;
-        if(y0 > z0):
-            ranky += 1
-        else:
-            rankz += 1;
-        if(y0 > w0):
-            ranky += 1
-        else:
-            rankw += 1;
-        if(z0 > w0):
-            rankz += 1
-        else:
-            rankw += 1;
-    
-        i1 = j1 = k1 = l1 = 0; # The integer offsets for the second simplex corner
-        i2 = j2 = k2 = l2 = 0 # The integer offsets for the third simplex corner
-        i3 = j3 = k3 = l3 = 0 # The integer offsets for the fourth simplex corner
-        # simplex[c] is a 4-vector with the numbers 0, 1, 2 and 3 in some order.
-        # Many values of c will never occur, since e.g. x>y>z>w makes x<z, y<w and x<w
-        # impossible. Only the 24 indices which have non-zero entries make any sense.
-        # We use a thresholding to set the coordinates in turn from the largest magnitude.
-        # Rank 3 denotes the largest coordinate.
-        i1 = 1 if rankx >= 3 else 0;
-        j1 = 1 if ranky >= 3 else 0;
-        k1 = 1 if rankz >= 3 else 0;
-        l1 = 1 if rankw >= 3 else 0;
-        # Rank 2 denotes the second largest coordinate.
-        i2 = 1 if rankx >= 2 else 0;
-        j2 = 1 if ranky >= 2 else 0;
-        k2 = 1 if rankz >= 2 else 0;
-        l2 = 1 if rankw >= 2 else 0;
-        # Rank 1 denotes the second smallest coordinate.
-        i3 = 1 if rankx >= 1 else 0;
-        j3 = 1 if ranky >= 1 else 0;
-        k3 = 1 if rankz >= 1 else 0;
-        l3 = 1 if rankw >= 1 else 0;
-        # The fifth corner has all coordinate offsets = 1, so no need to compute that.
-        x1 = x0 - i1 + self.G4; # Offsets for second corner in (x,y,z,w) coords
-        y1 = y0 - j1 + self.G4;
-        z1 = z0 - k1 + self.G4;
-        w1 = w0 - l1 + self.G4;
-        x2 = x0 - i2 + 2.0*self.G4; # Offsets for third corner in (x,y,z,w) coords
-        y2 = y0 - j2 + 2.0*self.G4;
-        z2 = z0 - k2 + 2.0*self.G4;
-        w2 = w0 - l2 + 2.0*self.G4;
-        x3 = x0 - i3 + 3.0*self.G4; # Offsets for fourth corner in (x,y,z,w) coords
-        y3 = y0 - j3 + 3.0*self.G4;
-        z3 = z0 - k3 + 3.0*self.G4;
-        w3 = w0 - l3 + 3.0*self.G4;
-        x4 = x0 - 1.0 + 4.0*self.G4; # Offsets for last corner in (x,y,z,w) coords
-        y4 = y0 - 1.0 + 4.0*self.G4;
-        z4 = z0 - 1.0 + 4.0*self.G4;
-        w4 = w0 - 1.0 + 4.0*self.G4;
-        # Work out the hashed gradient indices of the five simplex corners
-        ii = i & 255;
-        jj = j & 255;
-        kk = k & 255;
-        ll = l & 255;
-        gi0 = self.perm[ii+self.perm[jj+self.perm[kk+self.perm[ll]]]] % 32;
-        gi1 = self.perm[ii+i1+self.perm[jj+j1+self.perm[kk+k1+self.perm[ll+l1]]]] % 32;
-        gi2 = self.perm[ii+i2+self.perm[jj+j2+self.perm[kk+k2+self.perm[ll+l2]]]] % 32;
-        gi3 = self.perm[ii+i3+self.perm[jj+j3+self.perm[kk+k3+self.perm[ll+l3]]]] % 32;
-        gi4 = self.perm[ii+1+self.perm[jj+1+self.perm[kk+1+self.perm[ll+1]]]] % 32;
-        # Calculate the contribution from the five corners
-        t0 = 0.6 - x0*x0 - y0*y0 - z0*z0 - w0*w0;
-        if(t0 >= 0):
-            t0 *= t0;
-            n0 = t0 * t0 * self.grad4[gi0].dot4(x0, y0, z0, w0)
-    
-        t1 = 0.6 - x1*x1 - y1*y1 - z1*z1 - w1*w1;
-        if(t1 >= 0):
-            t1 *= t1;
-            n1 = t1 * t1 * self.grad4[gi1].dot4(x1, y1, z1, w1)
-    
-        t2 = 0.6 - x2*x2 - y2*y2 - z2*z2 - w2*w2;
-        if(t2 >= 0):
-            t2 *= t2;
-            n2 = t2 * t2 * self.grad4[gi2].dot4(x2, y2, z2, w2)
-    
-        t3 = 0.6 - x3*x3 - y3*y3 - z3*z3 - w3*w3;
-        if(t3 >= 0):
-            t3 *= t3;
-            n3 = t3 * t3 * self.grad4[gi3].dot4(x3, y3, z3, w3)
-    
-        t4 = 0.6 - x4*x4 - y4*y4 - z4*z4 - w4*w4;
-        if(t4 >= 0):
-            t4 *= t4;
-            n4 = t4 * t4 * self.grad4[gi4].dot4(x4, y4, z4, w4)
-    
-        # Sum up and scale the result to cover the range [-1,1]
-        return 27.0 * (n0 + n1 + n2 + n3 + n4);
+	def noise2d(self, x, y):
+		"""2D Perlin simplex noise. 
+		
+		Return a floating point value from -1 to 1 for the given x, y coordinate. 
+		The same value is always returned for a given x, y pair unless the
+		permutation table changes (see randomize above). 
+		"""
+		# Skew input space to determine which simplex (triangle) we are in
+		s = (x + y) * _F2
+		i = floor(x + s)
+		j = floor(y + s)
+		t = (i + j) * _G2
+		x0 = x - (i - t) # "Unskewed" distances from cell origin
+		y0 = y - (j - t)
 
-if __name__ == "__main__":
-    args = sys.argv[1:]
-    try:
-        x1 = float(args[0])
-        x2 = float(args[1])
-        nx = int(args[2])
-        y1 = float(args[3])
-        y2 = float(args[4])
-        ny = int(args[5])
-    except:
-        print "usage: %s x1 x2 nx y1 y2 ny" % sys.argv[0]
-        print ""
-        print "  generate noise values for a 2D grid"
-        print "  y ranges from [y1, y2] sliced into ny values"
-        print "  x ranges from [x1, x2] sliced into nx values"
-        print ""
-        print "  e.g. 3 4 2 6 7 2 specifies a 2x2 square x~[3,4] y~[6,7]"
-        print ""
-        sys.exit(1)
+		if x0 > y0:
+			i1 = 1; j1 = 0 # Lower triangle, XY order: (0,0)->(1,0)->(1,1)
+		else:
+			i1 = 0; j1 = 1 # Upper triangle, YX order: (0,0)->(0,1)->(1,1)
+		
+		x1 = x0 - i1 + _G2 # Offsets for middle corner in (x,y) unskewed coords
+		y1 = y0 - j1 + _G2
+		x2 = x0 + _G2 * 2.0 - 1.0 # Offsets for last corner in (x,y) unskewed coords
+		y2 = y0 + _G2 * 2.0 - 1.0
 
-    dx = x2 - x1
-    dy = y2 - y1
+		# Determine hashed gradient indices of the three simplex corners
+		perm = self.permutation
+		ii = int(i) % self.period
+		jj = int(j) % self.period
+		gi0 = perm[ii + perm[jj]] % 12
+		gi1 = perm[ii + i1 + perm[jj + j1]] % 12
+		gi2 = perm[ii + 1 + perm[jj + 1]] % 12
 
-    n = SimplexNoise()
-    i = 0
-    while i < ny:
-        y = y1 + i * dy / (ny - 1)
-        rs = []
-        j = 0
-        while j < nx:
-            x = x1 + j * dx / (nx - 1)
-            rs.append(n.noise2d(x, y))
-            j += 1
+		# Calculate the contribution from the three corners
+		tt = 0.5 - x0**2 - y0**2
+		if tt > 0:
+			g = _GRAD3[gi0]
+			noise = tt**4 * (g[0] * x0 + g[1] * y0)
+		else:
+			noise = 0.0
+		
+		tt = 0.5 - x1**2 - y1**2
+		if tt > 0:
+			g = _GRAD3[gi1]
+			noise += tt**4 * (g[0] * x1 + g[1] * y1)
+		
+		tt = 0.5 - x2**2 - y2**2
+		if tt > 0:
+			g = _GRAD3[gi2]
+			noise += tt**4 * (g[0] * x2 + g[1] * y2)
 
-        print ' '.join(["%+.3f" % r for r in rs])
-        i += 1
+		return noise * 70.0 # scale noise to [-1, 1]
+
+	def noise3d(self, x, y, z):
+		"""3D Perlin simplex noise. 
+		
+		Return a floating point value from -1 to 1 for the given x, y, z coordinate. 
+		The same value is always returned for a given x, y, z pair unless the
+		permutation table changes (see randomize above).
+		"""
+		# Skew the input space to determine which simplex cell we're in
+		s = (x + y + z) * _F3
+		i = floor(x + s)
+		j = floor(y + s)
+		k = floor(z + s)
+		t = (i + j + k) * _G3
+		x0 = x - (i - t) # "Unskewed" distances from cell origin
+		y0 = y - (j - t)
+		z0 = z - (k - t)
+
+		# For the 3D case, the simplex shape is a slightly irregular tetrahedron. 
+		# Determine which simplex we are in. 
+		if x0 >= y0:
+			if y0 >= z0:
+				i1 = 1; j1 = 0; k1 = 0
+				i2 = 1; j2 = 1; k2 = 0
+			elif x0 >= z0:
+				i1 = 1; j1 = 0; k1 = 0
+				i2 = 1; j2 = 0; k2 = 1
+			else:
+				i1 = 0; j1 = 0; k1 = 1
+				i2 = 1; j2 = 0; k2 = 1
+		else: # x0 < y0
+			if y0 < z0:
+				i1 = 0; j1 = 0; k1 = 1
+				i2 = 0; j2 = 1; k2 = 1
+			elif x0 < z0:
+				i1 = 0; j1 = 1; k1 = 0
+				i2 = 0; j2 = 1; k2 = 1
+			else:
+				i1 = 0; j1 = 1; k1 = 0
+				i2 = 1; j2 = 1; k2 = 0
+		
+		# Offsets for remaining corners
+		x1 = x0 - i1 + _G3
+		y1 = y0 - j1 + _G3
+		z1 = z0 - k1 + _G3
+		x2 = x0 - i2 + 2.0 * _G3
+		y2 = y0 - j2 + 2.0 * _G3
+		z2 = z0 - k2 + 2.0 * _G3
+		x3 = x0 - 1.0 + 3.0 * _G3
+		y3 = y0 - 1.0 + 3.0 * _G3
+		z3 = z0 - 1.0 + 3.0 * _G3
+
+		# Calculate the hashed gradient indices of the four simplex corners
+		perm = self.permutation
+		ii = int(i) % self.period
+		jj = int(j) % self.period
+		kk = int(k) % self.period
+		gi0 = perm[ii + perm[jj + perm[kk]]] % 12
+		gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1]]] % 12
+		gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2]]] % 12
+		gi3 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1]]] % 12
+
+		# Calculate the contribution from the four corners
+		noise = 0.0
+		tt = 0.6 - x0**2 - y0**2 - z0**2
+		if tt > 0:
+			g = _GRAD3[gi0]
+			noise = tt**4 * (g[0] * x0 + g[1] * y0 + g[2] * z0)
+		else:
+			noise = 0.0
+		
+		tt = 0.6 - x1**2 - y1**2 - z1**2
+		if tt > 0:
+			g = _GRAD3[gi1]
+			noise += tt**4 * (g[0] * x1 + g[1] * y1 + g[2] * z1)
+		
+		tt = 0.6 - x2**2 - y2**2 - z2**2
+		if tt > 0:
+			g = _GRAD3[gi2]
+			noise += tt**4 * (g[0] * x2 + g[1] * y2 + g[2] * z2)
+		
+		tt = 0.6 - x3**2 - y3**2 - z3**2
+		if tt > 0:
+			g = _GRAD3[gi3]
+			noise += tt**4 * (g[0] * x3 + g[1] * y3 + g[2] * z3)
+		
+		return noise * 32.0
+
+
+def lerp(t, a, b):
+	return a + t * (b - a)
+
+def grad3(hash, x, y, z):
+	g = _GRAD3[hash % 16]
+	return x*g[0] + y*g[1] + z*g[2]
+
+
+class TileableNoise(BaseNoise):
+	"""Tileable implemention of Perlin "improved" noise. This
+	is based on the reference implementation published here:
+	
+	http://mrl.nyu.edu/~perlin/noise/
+	"""
+
+	def noise3(self, x, y, z, repeat, base=0.0):
+		"""Tileable 3D noise.
+		
+		repeat specifies the integer interval in each dimension 
+		when the noise pattern repeats.
+		
+		base allows a different texture to be generated for
+		the same repeat interval.
+		"""
+		i = int(fmod(floor(x), repeat))
+		j = int(fmod(floor(y), repeat))
+		k = int(fmod(floor(z), repeat))
+		ii = (i + 1) % repeat
+		jj = (j + 1) % repeat
+		kk = (k + 1) % repeat
+		if base:
+			i += base; j += base; k += base
+			ii += base; jj += base; kk += base
+
+		x -= floor(x); y -= floor(y); z -= floor(z)
+		fx = x**3 * (x * (x * 6 - 15) + 10)
+		fy = y**3 * (y * (y * 6 - 15) + 10)
+		fz = z**3 * (z * (z * 6 - 15) + 10)
+
+		perm = self.permutation
+		A = perm[i]
+		AA = perm[A + j]
+		AB = perm[A + jj]
+		B = perm[ii]
+		BA = perm[B + j]
+		BB = perm[B + jj]
+		
+		return lerp(fz, lerp(fy, lerp(fx, grad3(perm[AA + k], x, y, z),
+										  grad3(perm[BA + k], x - 1, y, z)),
+								 lerp(fx, grad3(perm[AB + k], x, y - 1, z),
+										  grad3(perm[BB + k], x - 1, y - 1, z))),
+						lerp(fy, lerp(fx, grad3(perm[AA + kk], x, y, z - 1),
+										  grad3(perm[BA + kk], x - 1, y, z - 1)),
+								 lerp(fx, grad3(perm[AB + kk], x, y - 1, z - 1),
+										  grad3(perm[BB + kk], x - 1, y - 1, z - 1))))
+
+
+
+

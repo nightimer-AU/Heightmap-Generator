@@ -7,10 +7,10 @@ from Tkinter import *
    
 # Interpolation gui, that layers, which use interpolation have.
 class InterpolationGUI():
-  def __init__(self, label="Interpolation"):
+  def __init__(self, label="Interpolation", initial_value = 20):
     self.label = label
     self.mode  = 2
-    self.resolution = 2
+    self.resolution = initial_value
     self.mode_var   = IntVar()
     self.mode_var.set(2)
     

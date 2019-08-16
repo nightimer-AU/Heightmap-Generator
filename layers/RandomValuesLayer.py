@@ -28,12 +28,11 @@ class RandomValuesLayer(Layer):
     array.each(self.randomize)
     return array
   
-  def randomize(self, x, y, element):
-    base  = self.range_gui.getBase()
-    delta = self.range_gui.getDelta()
-    upper = base + delta
-    lower = base - delta
-    return getNextSeedInt(lower, upper)
+  def randomize(self, arr2d, x, y, element):
+    minimum = self.range_gui.getMinimum()
+    maximum = self.range_gui.getMaximum()
+    
+    return getNextSeedInt(minimum, maximum)
   
   def getTypeName(self):
     return "Random values layer."

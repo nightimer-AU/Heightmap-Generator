@@ -1,21 +1,27 @@
 from .Layer import *
-
+from utils  import *
+from guis.RangeGUI import *
+from guis.SeedingGUI  import *
 
 class SimplexLayer(Layer):
     def __init__(self, name, orig=None):
         Layer.__init__(self, name, orig)
-        self.spread = 1 # The amount of spread
+        self.scale = 1 # The amount of spread
+        self.seed_gui    = SeedingGUI()                   if orig == None else orig.seed_gui
+        self.range_gui   = RangeGUI()                     if orig == None else orig.range_gui
         self.scale_gui   = ScaleGUI("Scale",1,100)        if orig == None else orig.scale_gui
-        self.clamp_gui   = ClampGUI("Clamping",-127, 127) if orig == None else orig.clamp_gui 
+        self.clamp_gui   = ClampGUI("Clamping",0, 255)    if orig == None else orig.clamp_gui 
         
     def layoutGUI(self, parent, heightmap):
+        self.seed_gui.layoutGUI(parent, heightmap)
+        self.range_gui.layoutGUI(parent, heightmap)
         self.scale_gui.layoutGUI(parent, heightmap)
         self.clamp_gui.layoutGUI(parent, heightmap)
-        #self.spread_gui.layoutGUI(parent, heightmap)
+        
         
     def getValues(self, stack, cumulative):
         self.noise  = SimplexNoise()
-        self.spread = self.scale_gui.getValue()
+        self.scale = self.scale_gui.getValue()
         
         w = cumulative.getWidth()
         h = cumulative.getHeight()
@@ -23,18 +29,23 @@ class SimplexLayer(Layer):
         arr2d = Array2D(w,h)
         arr2d.each(self.makeNoisy)
         
-        
-
         return arr2d
         
-    def makeNoisy(self, x, y, orig): # The original will be 0 here always
+    def makeNoisy(self, arr2d, x, y, orig): # The original will be 0 here always
         scale = float(self.scale_gui.getValue())
-        
        
-        val = self.noise.noise2d(x  / scale,y / scale) * 10
+        seed = self.seed_gui.getSeed()
+          
+        offset = seed * arr2d.getWidth()
+
+        val = self.noise.noise2d(x / scale + offset, y / scale)
+
+        minimum = self.range_gui.getMinimum()
+        maximum = self.range_gui.getMaximum()
         
+        val = mapRange(val, 0, 1, minimum, maximum)
+
         is_clamping_enabled = self.clamp_gui.isEnabled()
-       
 
         if is_clamping_enabled:
           
@@ -42,8 +53,7 @@ class SimplexLayer(Layer):
           min_val = self.clamp_gui.getBottomValue();
           
           if not max_val < min_val: # Clamp only when possible
-              if   val < min_val: val = min_val
-              elif val > max_val: val = max_val
+              val = clamp(val, min_val, max_val)
         
         return val
         

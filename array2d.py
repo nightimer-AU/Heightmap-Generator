@@ -124,7 +124,7 @@ class Array2D():
     for y in range(0, self.height):
       for x in range(0,self.width):
         orig = self.get(x,y)
-        new  = callback(x, y, orig)
+        new  = callback(self, x, y, orig)
         self.set(x, y, new)
 
   def __str__(self):

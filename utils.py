@@ -40,10 +40,26 @@ def getNextSeedInt(low, high):
   return randomizer.randint(low, high)
   
 
+def mapRange(input_value, original_range_min, original_range_max, target_range_min, target_range_max):
+  delta_original = float(original_range_max) - float(original_range_min)
+  delta_target   = float(target_range_max) - float(target_range_min)
+  scale = delta_target / delta_original
 
+  delta_input_to_min = input_value - original_range_min
+  output = delta_input_to_min * scale + target_range_min
+  return output
+
+
+def clamp(input_value, minimum, maximum):
+  if input_value < minimum:
+    return minimum
+  elif input_value > maximum:
+    return maximum
+  else:
+    return input_value
 
 if __name__ == "__main__":
-  setSeedNumber(0)
+  '''setSeedNumber(0)
   n = getNextSeedInt(0,10)
   print(n)
   n = getNextSeedInt(0,10)
@@ -68,7 +84,10 @@ if __name__ == "__main__":
   n = getNextSeedInt(0,10)
   print(n)
   n = getNextSeedInt(0,10)
-  print(n)
+  print(n)'''
+
+  val = mapRange(10, 0, 20 , 100, 250)
+  print val
 
   
   

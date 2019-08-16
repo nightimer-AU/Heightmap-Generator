@@ -119,7 +119,7 @@ class HeightmapGenerator:
     ## Create the layers list:
     layer_list = Listbox(layers, selectmode=SINGLE)
     self.layer_list = layer_list
-    layer_list.bind("<Double-Button-1>", self.changeCurrentLayer)
+    layer_list.bind("<Button-1>", self.changeCurrentLayer)
     layer_list.pack(expand=Y, fill=Y)
    
     ## Create layers moving buttons:
@@ -159,20 +159,8 @@ class HeightmapGenerator:
     ln_entry.pack()
     
     # Layer mode frame:
-    lm_frame = Frame(self.layer_settings)
-    lm_frame.pack()
     
-    lm_label = Label(lm_frame, text="Layer mode:")
-    lm_label.pack(side=LEFT)
-    
-    self.layer_mode = StringVar(self.layer_settings)
-    self.layer_mode.set("Add")
-    lm_combo = OptionMenu(lm_frame, self.layer_mode,
-      "Add", "Subtract", "Multiply", "Divide", "Mix", "Dissolve",
-      command=self.setLayerMode
-    )
-    lm_combo.pack(side=LEFT)
-    
+
     self.ls_container = Frame(self.layer_settings)
     self.ls_container.pack(expand=YES, fill=BOTH)
     
@@ -267,7 +255,7 @@ class HeightmapGenerator:
       self.current_layer = layer
     
     self.readLayerName()
-    self.readLayerMode()
+    
     self.updateLayerSettings()
 
   def readLayerName(self):
@@ -276,12 +264,6 @@ class HeightmapGenerator:
     self.layer_name_entry.insert(INSERT, new_name)
     
 
-  def readLayerMode(self):
-    l_mode = self.current_layer.getMode()
-    mode_name = l_mode.getName()
-    
-    self.layer_mode.set(mode_name)
-    
   def setLayerMode(self, idx):
     new_name = self.layer_mode.get()
     new_mode = LayerMode.fromName(new_name)
@@ -378,7 +360,7 @@ class HeightmapGenerator:
   def createPreview(self, cumulative):
     self.setStatus("Normalizing heightmap for image coloring...")
 
-    norm = cumulative.makeNormalized()
+   
     
     w = self.heightmap.getWidth()
     h = self.heightmap.getHeight()
@@ -388,12 +370,12 @@ class HeightmapGenerator:
     
     for x in range(0, w):
       for y in range(0, h):
-        height = norm.get(x,y)
-        val = int(height * 255)
-        color = (val, val, val)
+        height = int(cumulative.get(x,y))
+        
+        color = (height, height, height)
         image.putpixel((x,y), color)
         
-    self.setStatus("Resizing the image to fit the canvas bounds..,")
+    self.setStatus("Resizing the image to fit the preview bounds..,")
     image = image.resize(
       ( 1000, 1000 ), 
       PIL.Image.NEAREST

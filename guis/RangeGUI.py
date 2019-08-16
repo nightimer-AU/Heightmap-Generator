@@ -10,46 +10,45 @@ class RangeGUI():
   
   def __init__(self, label="Range"):
     self.label = label
-    self.base  = 0  # Base value
-    self.delta = 10 # Delta value
+    self.minimum  = 0  
+    self.maximum = 255 
   
   def layoutGUI(self, parent, heightmap):
-    # Create the base level slider:
+    # Create the minimum level slider:
     frame = LabelFrame(parent, text=self.label)
     frame.pack(fill=X, padx=5, pady=5)
     
-    bs = Scale(frame, orient=HORIZONTAL, label="Base level:")
-    self.base_slider = bs
-    bs["command"] = self.updateBase
-    bs["from"] = -50
-    bs["to"]   = +50
-    bs.pack(fill=X)
+    min_scale = Scale(frame, orient=HORIZONTAL, label="Minimum value:")
+    self.minimum_slider = min_scale
+    min_scale["command"] = self.updateMinimum
+    min_scale["from"] = 0
+    min_scale["to"]   = 255
+    min_scale.pack(fill=X)
+    min_scale.set(self.minimum)
     
-    bs.set(self.base)
-    
-    # Create the delta value slider   
-    ds = Scale(frame, orient=HORIZONTAL, label="Delta:")
-    self.delta_slider = ds
-    ds["command"] = self.updateDelta
-    ds.pack(fill=X)
-    ds["from"] = 0
-    ds["to"]   = 100
-    ds.set(self.delta)
+    # Create the maximum value slider   
+    max_scale = Scale(frame, orient=HORIZONTAL, label="Maximum value:")
+    self.max_slider = max_scale
+    max_scale["command"] = self.updateMaximum
+    max_scale.pack(fill=X)
+    max_scale["from"] = 0
+    max_scale["to"]   = 255
+    max_scale.set(self.maximum)
 
-  def updateBase(self, value):
-    self.base = int(value)
+  def updateMinimum(self, value):
+    self.minimum = int(value)
   
-  def updateDelta(self, value):
-    self.delta = int(value)
+  def updateMaximum(self, value):
+    self.maximum = int(value)
     
-  def getDelta(self):
-    return self.delta
+  def getMinimum(self):
+    return self.minimum
     
-  def getBase(self):
-    return self.base
+  def getMaximum(self):
+    return self.maximum
     
   def copy(self):
     gui = RangeGUI()
-    gui.base  = self.base
-    gui.delta = self.delta
+    gui.minimum  = self.minimum
+    gui.maximum  = self.maximum
     return gui
