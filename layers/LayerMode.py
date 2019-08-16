@@ -23,53 +23,10 @@ class LayerMode():
     return new_mode
 
 class AddLayerMode(LayerMode):
-  def apply(self, val1, val2):
-    return val1 + val2
+  def apply(self, layer_val, cumulative_val):
+    return layer_val + cumulative_val
 
   def getName(self):
     return "Add"
     
   
-class SubtractLayerMode(LayerMode):
-  def apply(self, val1, val2):
-    return val1 - val2
-  
-  def getName(self):
-    return "Subtract"
-
-class MultiplyLayerMode(LayerMode):
-  def apply(self, val1, val2):
-    return val1 * val2
-    
-  def getName(self):
-    return "Multiply"
-
-    
-class DivideLayerMode(LayerMode):
-  def apply(self, val1, val2):
-    return val1 / val2
-    
-  def getName(self):
-    return "Divide"
-
-
-class DissolveLayerMode(LayerMode):
-  def apply(self, val1, val2):
-    rnd = randint(-1,1)
-    if rnd < 0:
-      return val1
-    else:
-      return val2
-    
-  def getName(self):
-    return "Dissolve"
-
-       
-class MixLayerModel(LayerMode):
-  def apply(self, val1, val2):
-    return (val1 + val2) / 2
-        
-  def getName(self):
-    return "Mix"
-
-

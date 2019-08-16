@@ -7,6 +7,8 @@ from time         import *
 from tkMessageBox import *
 from Tkinter      import *
 
+import Tkinter, Tkconstants, tkFileDialog
+
 from PIL import Image, ImageTk
 import PIL
 
@@ -29,7 +31,11 @@ class HeightmapGenerator:
     root.geometry("800x800+0+0")
     
     ## Some of the intance variables:
-    self.heightmap = Heightmap(100,100) # Current heightmap. 
+    w = 500
+    h = 500
+    
+    self.heightmap = Heightmap(w,h) # Current heightmap. 
+    self.image = PIL.Image.new("RGB", (w, h), (0,0,0))
     self.layers_factory = LayersFactory() 
     self.layers = {} # A dictionary mapping from layer name to a layer
     self.current_layer = DummyLayer()
@@ -80,7 +86,7 @@ class HeightmapGenerator:
     menu.add_cascade(menu=file_menu, label="File")
     
     file_menu.add_command(label="New", command=self.newHeightmap)
-    
+    file_menu.add_command(label="Save", command=self.save)
     file_menu.add_command(label="Exit", command=self.root.destroy)
     
   def createHeightmapPane(self):
@@ -159,8 +165,10 @@ class HeightmapGenerator:
     ln_entry.pack()
     
     # Layer mode frame:
+    lm_frame = Frame(self.layer_settings)
+    lm_frame.pack()
     
-
+    
     self.ls_container = Frame(self.layer_settings)
     self.ls_container.pack(expand=YES, fill=BOTH)
     
@@ -188,7 +196,8 @@ class HeightmapGenerator:
     height = dialog.height
     
     self.heightmap = Heightmap(width, height)
-      
+    self.image = PIL.Image.new("RGB", (width, height), (0,0,0))
+  
     self.hm_dims["text"] = "W:%d H:%d" % (width, height)
       
   def newLayer(self):
@@ -255,7 +264,7 @@ class HeightmapGenerator:
       self.current_layer = layer
     
     self.readLayerName()
-    
+ 
     self.updateLayerSettings()
 
   def readLayerName(self):
@@ -264,6 +273,8 @@ class HeightmapGenerator:
     self.layer_name_entry.insert(INSERT, new_name)
     
 
+
+    
   def setLayerMode(self, idx):
     new_name = self.layer_mode.get()
     new_mode = LayerMode.fromName(new_name)
@@ -376,6 +387,7 @@ class HeightmapGenerator:
         image.putpixel((x,y), color)
         
     self.setStatus("Resizing the image to fit the preview bounds..,")
+    original_image = image
     image = image.resize(
       ( 1000, 1000 ), 
       PIL.Image.NEAREST
@@ -383,7 +395,8 @@ class HeightmapGenerator:
       
     photo_img = ImageTk.PhotoImage(image)
     
-    
+    self.image = original_image
+
     self.canvas.img = photo_img # Again keep that reference
     self.canvas.create_image(0,0, image=photo_img)
     
@@ -395,6 +408,16 @@ class HeightmapGenerator:
   def setStatus(self, txt):
     self.status["text"] = txt
     self.root.update()
+
+
+  def save(self):
+    filename = tkFileDialog.asksaveasfilename(
+      initialdir = "/", 
+      title="Save heightmapp",
+      filetypes =  (("png files","*.png"),("all files","*.*"))
+    )
+    self.image.save(filename)
+    print filename
 
 if __name__ == "__main__":
   app = HeightmapGenerator()
