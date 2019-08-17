@@ -53,7 +53,7 @@ class ClampGUI():
   def getBottomValue(self):
     return self.btm_limit_var.get()
     
-  def copy(self):
+  def duplicate(self):
     gui = ClampGUI()
     minimum = self.getBottomValue()
     maximum = self.getTopValue()

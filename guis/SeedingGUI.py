@@ -41,7 +41,7 @@ class SeedingGUI():
   def getSeed(self):
     return int(self.seed_var.get())
 
-  def copy(self):
+  def duplicate(self):
     gui = SeedingGUI()
     gui.seed_var = StringVar()    
     gui.seed_var.set(self.seed_var.get())

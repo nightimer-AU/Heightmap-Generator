@@ -47,7 +47,7 @@ class RangeGUI():
   def getMaximum(self):
     return self.maximum
     
-  def copy(self):
+  def duplicate(self):
     gui = RangeGUI()
     gui.minimum  = self.minimum
     gui.maximum  = self.maximum

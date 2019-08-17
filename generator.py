@@ -31,8 +31,8 @@ class HeightmapGenerator:
     root.geometry("800x800+0+0")
     
     ## Some of the intance variables:
-    w = 500
-    h = 500
+    w = 2
+    h = 2
     
     self.heightmap = Heightmap(w,h) # Current heightmap. 
     self.image = PIL.Image.new("RGB", (w, h), (0,0,0))
@@ -125,7 +125,7 @@ class HeightmapGenerator:
     ## Create the layers list:
     layer_list = Listbox(layers, selectmode=SINGLE)
     self.layer_list = layer_list
-    layer_list.bind("<Button-1>", self.changeCurrentLayer)
+    layer_list.bind("<Double-Button-1>", self.changeCurrentLayer)
     layer_list.pack(expand=Y, fill=Y)
    
     ## Create layers moving buttons:
@@ -164,10 +164,24 @@ class HeightmapGenerator:
     self.layer_name_entry = ln_entry
     ln_entry.pack()
     
+    # Layer type text
+    layer_type = self.current_layer.getTypeName()
+    lt_label = Label(self.layer_settings, text=layer_type)
+    lt_label.pack()
+
+    self.layer_type_label = lt_label
+
     # Layer mode frame:
     lm_frame = Frame(self.layer_settings)
     lm_frame.pack()
     
+    self.layer_mode = StringVar(self.layer_settings)
+    self.layer_mode.set("Add")
+    lm_combo = OptionMenu(lm_frame, self.layer_mode,
+      "Add", "Subtract", "Multiply", "Divide", "Mix",
+      command=self.setLayerMode
+    )
+    lm_combo.pack(side=LEFT)
     
     self.ls_container = Frame(self.layer_settings)
     self.ls_container.pack(expand=YES, fill=BOTH)
@@ -247,10 +261,8 @@ class HeightmapGenerator:
     
     if dialog.OK:
       new_name = dialog.getValue()
-      copied = layer.copy(new_name)
-      self.insertLayer(copied, idx+1)
-      
-    
+      duplicated = layer.duplicate(new_name)
+      self.insertLayer(duplicated, idx+1)
     
   
   # Change the current layer the user is working on.
@@ -264,7 +276,8 @@ class HeightmapGenerator:
       self.current_layer = layer
     
     self.readLayerName()
- 
+    self.readLayerType()
+    self.readLayerMode()
     self.updateLayerSettings()
 
   def readLayerName(self):
@@ -272,7 +285,17 @@ class HeightmapGenerator:
     self.layer_name_entry.delete(0,END)
     self.layer_name_entry.insert(INSERT, new_name)
     
+  def readLayerType(self):
+    layer_type_name = self.current_layer.getTypeName()
+    #self.layer_type_label.delete(0, END)
+    #self.layer_type_label.insert(INSERT, layer_type_name)
+    self.layer_type_label["text"] = layer_type_name
 
+  def readLayerMode(self):
+    l_mode = self.current_layer.getMode()
+    mode_name = l_mode.getName()
+    
+    self.layer_mode.set(mode_name)
 
     
   def setLayerMode(self, idx):
@@ -364,23 +387,25 @@ class HeightmapGenerator:
     
     self.setStatus("Heightmap generated. Generating preview...")
     
+    print "Result: "
+    print cumulative
+
     self.createPreview(cumulative)    
   
   
   # Create preview image and display it in preview area 
   def createPreview(self, cumulative):
-    self.setStatus("Normalizing heightmap for image coloring...")
-
-   
-    
     w = self.heightmap.getWidth()
     h = self.heightmap.getHeight()
-    image = PIL.Image.new("RGBA", (w,h))
     
     self.setStatus("Creating image preview...")
+    image = PIL.Image.new("RGBA", (w,h))
     
     for x in range(0, w):
       for y in range(0, h):
+        
+        #print str(x)
+        #print str(y) + "\n"
         height = int(cumulative.get(x,y))
         
         color = (height, height, height)
@@ -388,15 +413,14 @@ class HeightmapGenerator:
         
     self.setStatus("Resizing the image to fit the preview bounds..,")
     original_image = image
-    image = image.resize(
+    self.image = original_image
+
+    image = original_image.resize(
       ( 1000, 1000 ), 
       PIL.Image.NEAREST
     )
       
     photo_img = ImageTk.PhotoImage(image)
-    
-    self.image = original_image
-
     self.canvas.img = photo_img # Again keep that reference
     self.canvas.create_image(0,0, image=photo_img)
     
@@ -417,7 +441,7 @@ class HeightmapGenerator:
       filetypes =  (("png files","*.png"),("all files","*.*"))
     )
     self.image.save(filename)
-    print filename
+        
 
 if __name__ == "__main__":
   app = HeightmapGenerator()

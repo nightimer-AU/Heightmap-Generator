@@ -13,3 +13,5 @@ class DummyLayer(Layer):
     return 
  
         
+  def getTypeName(self):
+    return "Dummy layer"

@@ -25,5 +25,7 @@ class ScaleGUI():
     def getValue(self):
         return self.value.get()
         
-    
-    
+    def duplicate(self):
+        gui = ScaleGUI(self.label, self.min_val, self.max_val, self.value.get())
+        
+        return gui

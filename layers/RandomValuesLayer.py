@@ -8,16 +8,16 @@ from utils					 import *
 # Layer with random values
 class RandomValuesLayer(Layer):
   
-  def __init__(self, name, orig=None):
-    Layer.__init__(self, name, orig)
-    self.seed_gui   = SeedingGUI() if orig == None else orig.seed_gui
-    self.range_gui  = RangeGUI()   if orig == None else orig.range_gui
+  def __init__(self, name):
+    Layer.__init__(self, name)
+    self.seed_gui   = SeedingGUI()
+    self.range_gui  = RangeGUI()  
     
   def layoutGUI(self, parent, heightmap=None):
     self.seed_gui.layoutGUI(parent, heightmap)
     self.range_gui.layoutGUI(parent, heightmap)
   
-  def getValues(self, stack, cumulative):
+  def makeHeights(self, stack, cumulative):
     w = cumulative.getWidth()
     h = cumulative.getHeight()
     array = Array2D(w, h)
@@ -26,6 +26,10 @@ class RandomValuesLayer(Layer):
     setSeedNumber(seed)
     
     array.each(self.randomize)
+
+    print "Applying layer " + self.name + "| Mode " +self.mode.getName()
+    print arr2d
+
     return array
   
   def randomize(self, arr2d, x, y, element):
@@ -45,8 +49,12 @@ class RandomValuesLayer(Layer):
       used internally by the python random number generator."
     
   def copy(self, name):
+    return RandomValuesLayer(name)
+  
+
+  def duplicate(self, name):
     layer = RandomValuesLayer(name, self)
-    layer.seed_gui   = self.seed_gui.copy()
-    layer.range_gui = self.range_gui.copy() 
+    layer.seed_gui  = self.seed_gui.duplicate()
+    layer.range_gui = self.range_gui.duplicate() 
     return layer
 

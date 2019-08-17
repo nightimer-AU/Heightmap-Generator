@@ -45,7 +45,7 @@ class InterpolationGUI():
   def getResolution(self):
     return self.resolution
 
-  def copy(self):
+  def duplicate(self):
     gui = InterpolationGUI(self.label)
     gui.resolution = self.resolution
     return gui
