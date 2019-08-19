@@ -31,8 +31,8 @@ class HeightmapGenerator:
     root.geometry("800x800+0+0")
     
     ## Some of the intance variables:
-    w = 2
-    h = 2
+    w = 100
+    h = 100
     
     self.heightmap = Heightmap(w,h) # Current heightmap. 
     self.image = PIL.Image.new("RGB", (w, h), (0,0,0))
@@ -387,8 +387,8 @@ class HeightmapGenerator:
     
     self.setStatus("Heightmap generated. Generating preview...")
     
-    print "Result: "
-    print cumulative
+    #print "Result: "
+    #print cumulative
 
     self.createPreview(cumulative)    
   

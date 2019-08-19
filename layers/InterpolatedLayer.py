@@ -37,8 +37,8 @@ class InterpolatedLayer(RandomValuesLayer):
     if is_clamped:
       interpolated.each(self.clampArrayValues)
       
-    print "Applying layer " + self.name + "| Mode " + self.mode.getName()
-    print interpolated
+    #print "Applying layer " + self.name + "| Mode " + self.mode.getName()
+    #print interpolated
 
 
     return interpolated

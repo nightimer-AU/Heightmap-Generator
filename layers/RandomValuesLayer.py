@@ -27,8 +27,8 @@ class RandomValuesLayer(Layer):
     
     array.each(self.randomize)
 
-    print "Applying layer " + self.name + "| Mode " +self.mode.getName()
-    print arr2d
+    #print "Applying layer " + self.name + "| Mode " +self.mode.getName()
+    #print arr2d
 
     return array
   

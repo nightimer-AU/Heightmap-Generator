@@ -28,8 +28,8 @@ class SimplexLayer(Layer):
         arr2d = Array2D(w,h)
         arr2d.each(self.makeNoisy)
         
-        print "Applying layer " + self.name + "| Mode " + self.mode.getName()
-        print arr2d
+        #print "Applying layer " + self.name + "| Mode " + self.mode.getName()
+        #print arr2d
 
         return arr2d
         
