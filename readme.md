@@ -39,8 +39,10 @@ Each layer has its mode, either add, subtract, multiply or divide. Each of this 
 Click the **Generate** button to see how the generated height map will look like. 
 
 
-#### Saving the heightmap
-To save the generated heightmap go to the **File** menu and select **Save** option. You will be asked to save the grayscale image in .png format to the disk. Name your file (dont forget the extension! .png, otherwise it wont save) and click **Save**.
+#### Saving, loading and exporting the heightmap
+The heightmap files are saved with **.hm** extension. To save the generated heightmap go to the **File** menu and select **Save** option.You can then load the heightmap file using file's menu **load** button.
+
+If you want to export the heightmap as .png file, you need to press the **Dxport as .png** button in the file menu. You will be asked to save the grayscale image in .png format to the disk. Name your file and click **Save**.
 
 
 

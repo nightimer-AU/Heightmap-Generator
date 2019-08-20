@@ -409,9 +409,6 @@ class HeightmapGenerator:
     
     for x in range(0, w):
       for y in range(0, h):
-        
-        #print str(x)
-        #print str(y) + "\n"
         height = int(cumulative.get(x,y))
         
         color = (height, height, height)
@@ -478,7 +475,6 @@ class HeightmapGenerator:
     for layer_raw in layers_raw:
       layer_split = layer_raw.split(": ")
       if len(layer_split) == 1: continue
-      print layer_split
       layer_name = layer_split[0]
       
       layer_description = layer_split[1].split(" ")
@@ -488,8 +484,6 @@ class HeightmapGenerator:
       layer = None
 
       if layer_type == "RandomValuesLayer":
-        print "initializing RandomValuesLayer"
-
         layer = RandomValuesLayer(layer_name)
 
         seed = int(layer_description[2])
@@ -503,7 +497,6 @@ class HeightmapGenerator:
         
       
       if layer_type == "InterpolatedLayer":
-        print "initializing InterpolatedLayer"
         layer = InterpolatedLayer(layer_name)
         
         seed = int(layer_description[2])
@@ -525,7 +518,6 @@ class HeightmapGenerator:
         layer.setClampTopValue(clamp_max)
 
       if layer_type == "SimplexLayer":
-        print "initializing SimplexLayer"
         layer = SimplexLayer(layer_name)
         seed = int(layer_description[2])
         minimum_range = int(layer_description[3])
@@ -543,12 +535,10 @@ class HeightmapGenerator:
         layer.setClampBottomValue(clamp_min)
         layer.setClampTopValue(clamp_max)
 
-      #TODO set layer name and mode
+      
       layer.mode = LayerMode.fromName(layer_mode)
       self.insertLayer(layer)
       
-      print "Layer name: " + layer_name
-      print "Layer mode: " + layer_mode
 
   def export(self):
 
