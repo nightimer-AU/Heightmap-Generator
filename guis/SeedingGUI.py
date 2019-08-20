@@ -16,7 +16,7 @@ class SeedingGUI():
       seed = 0
     else:
       seed = int (self.seed_var.get())
-    
+     
     frame = LabelFrame(parent, text=self.label)
     frame.pack(padx=5, pady=5, fill=X)
     
@@ -40,6 +40,9 @@ class SeedingGUI():
     
   def getSeed(self):
     return int(self.seed_var.get())
+
+  def setSeed(self, seed):
+    self.seed_var.set(seed)
 
   def duplicate(self):
     gui = SeedingGUI()

@@ -25,10 +25,10 @@ class RangeGUI():
     min_scale["to"]   = 255
     min_scale.pack(fill=X)
     min_scale.set(self.minimum)
-    
+     
     # Create the maximum value slider   
     max_scale = Scale(frame, orient=HORIZONTAL, label="Maximum value:")
-    self.max_slider = max_scale
+    self.maximum_slider = max_scale
     max_scale["command"] = self.updateMaximum
     max_scale.pack(fill=X)
     max_scale["from"] = 0
@@ -41,6 +41,13 @@ class RangeGUI():
   def updateMaximum(self, value):
     self.maximum = int(value)
     
+  def setMinimum(self, minimum):
+    self.minimum = minimum
+    
+
+  def setMaximum(self, maximum):
+    self.maximum = maximum
+
   def getMinimum(self):
     return self.minimum
     

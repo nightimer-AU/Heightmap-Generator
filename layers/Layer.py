@@ -75,7 +75,7 @@ class Layer():
 
   def getTypeName(self):
     return ""
-
+ 
   def getTypeDescription(self):
     return ""
   
@@ -85,6 +85,8 @@ class Layer():
   def duplicate(self, name):
     return None
 
-
+  def __str__(self):
+    return None
+    
         
 

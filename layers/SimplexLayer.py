@@ -18,7 +18,27 @@ class SimplexLayer(Layer):
         self.scale_gui.layoutGUI(parent, heightmap)
         self.clamp_gui.layoutGUI(parent, heightmap)
         
-        
+    def setSeed(self, seed):
+      self.seed_gui.setSeed(seed)
+
+    def setClampEnabled(self, enabled):
+      self.clamp_gui.setEnabled(enabled)
+
+    def setClampTopValue(self, top_value):
+      self.clamp_gui.setTopValue(top_value)
+
+    def setClampBottomValue(self, bottom_value):
+      self.clamp_gui.setBottomValue(bottom_value)
+ 
+    def setMaximumRange(self, maximum):
+      self.range_gui.setMaximum(maximum)
+
+    def setMinimumRange(self, minimum):
+      self.range_gui.setMinimum(minimum)
+    
+    def setScale(self, scale):
+      self.scale_gui.setValue(scale)
+
     def makeHeights(self, stack, cumulative):
         self.noise  = SimplexNoise()
         
@@ -76,4 +96,16 @@ class SimplexLayer(Layer):
         layer.clamp_gui   = self.clamp_gui.duplicate()    
         return layer        
         
-        
+    def __str__(self):
+      seed = str(self.seed_gui.getSeed())
+      minimum_range = str(self.range_gui.getMinimum())
+      maximum_range = str(self.range_gui.getMaximum())
+      scale = str(self.scale_gui.getValue())
+      clamp_enabled = str(self.clamp_gui.isEnabled())
+      clamp_min = str(self.clamp_gui.getBottomValue())
+      clamp_max = str(self.clamp_gui.getTopValue())
+
+      return "SimplexLayer"  " " + seed + " " \
+        + minimum_range + " " + maximum_range + " "  \
+        + scale + " "  \
+        + clamp_enabled + " " + clamp_min + " " + clamp_max 

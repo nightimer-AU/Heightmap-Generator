@@ -16,7 +16,16 @@ class RandomValuesLayer(Layer):
   def layoutGUI(self, parent, heightmap=None):
     self.seed_gui.layoutGUI(parent, heightmap)
     self.range_gui.layoutGUI(parent, heightmap)
+   
+  def setSeed(self, seed):
+    self.seed_gui.setSeed(seed)
   
+  def setMaximumRange(self, maximum):
+    self.range_gui.setMaximum(maximum)
+
+  def setMinimumRange(self, minimum):
+    self.range_gui.setMinimum(minimum)
+
   def makeHeights(self, stack, cumulative):
     w = cumulative.getWidth()
     h = cumulative.getHeight()
@@ -58,3 +67,9 @@ class RandomValuesLayer(Layer):
     layer.range_gui = self.range_gui.duplicate() 
     return layer
 
+  def __str__(self):
+    seed = str(self.seed_gui.getSeed())
+    minimum_range = str(self.range_gui.getMinimum())
+    maximum_range = str(self.range_gui.getMaximum())
+    
+    return "RandomValuesLayer" + " " + seed + " " + minimum_range + " " + maximum_range

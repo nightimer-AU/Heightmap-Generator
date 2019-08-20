@@ -6,6 +6,10 @@
 # Layer mode represents operation that is done on the 
 # the cumulative values of the current layer application.
 class LayerMode():
+  
+  def __init__(self, name):
+    self.name = name
+
   def apply(self, val1, va2):
     pass
   
@@ -23,6 +27,9 @@ class LayerMode():
 
 
 class AddLayerMode(LayerMode):
+  def __init__(self):
+    LayerMode.__init__(self, "Add")
+
   def apply(self, cum_h, layer_h):
     return cum_h + layer_h
 
@@ -31,6 +38,9 @@ class AddLayerMode(LayerMode):
     
   
 class SubtractLayerMode(LayerMode):
+  def __init__(self):
+    LayerMode.__init__(self, "Subtract")
+
   def apply(self, cum_h, layer_h):
     return cum_h - layer_h
   
@@ -39,6 +49,9 @@ class SubtractLayerMode(LayerMode):
 
 
 class MultiplyLayerMode(LayerMode):
+  def __init__(self):
+    LayerMode.__init__(self, "Multiply")
+
   def apply(self, cum_h, layer_h):
     return cum_h * layer_h
     
@@ -47,6 +60,9 @@ class MultiplyLayerMode(LayerMode):
 
     
 class DivideLayerMode(LayerMode):
+  def __init__(self):
+    LayerMode.__init__(self, "Divide")
+
   def apply(self, cum_h, layer_h):
     return cum_h / layer_h
     
@@ -55,6 +71,9 @@ class DivideLayerMode(LayerMode):
 
        
 class MixLayerModel(LayerMode):
+  def __init__(self):
+    LayerMode.__init__(self, "Mix")
+
   def apply(self, cum_h, layer_h):
     return (cum_h + layer_h) / 2
         

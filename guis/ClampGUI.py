@@ -4,7 +4,7 @@ from random  import *
 from Tkinter import *
 
 
-
+ 
 # The clamping gui that most layers have. 
 class ClampGUI():
   def __init__(self, title="Clamping", min_val=0, max_val=255):
@@ -20,7 +20,25 @@ class ClampGUI():
     self.top_limit_var.set(max_val)
     
     self.enabled_var = IntVar()
-    
+
+  def setEnabled(self, enabled):
+    self.enabled_var.set(enabled)
+  
+  def isEnabled(self):
+    return self.enabled_var.get()
+
+  def setTopValue(self, top_value):
+    self.top_limit_var.set(top_value)
+
+  def getTopValue(self):
+    return self.top_limit_var.get()
+
+  def setBottomValue(self, bottom_value):
+    self.btm_limit_var.set(bottom_value)
+
+  def getBottomValue(self):
+    return self.btm_limit_var.get()
+
   def layoutGUI(self, parent, heightmap):
     frame = LabelFrame(parent, text="Clamping")
     frame.pack(fill=X, padx=5)
@@ -44,14 +62,8 @@ class ClampGUI():
     
     
     
-  def isEnabled(self):
-    return self.enabled_var.get()
-    
-  def getTopValue(self):
-    return self.top_limit_var.get()
-    
-  def getBottomValue(self):
-    return self.btm_limit_var.get()
+  
+
     
   def duplicate(self):
     gui = ClampGUI()

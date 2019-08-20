@@ -8,11 +8,15 @@ from tkMessageBox import *
 from Tkinter      import *
 
 import Tkinter, Tkconstants, tkFileDialog
+import json
 
 from PIL import Image, ImageTk
 import PIL
 
 from layers.DummyLayer import *
+from layers.RandomValuesLayer import *
+from layers.InterpolatedLayer import *
+from layers.SimplexLayer      import *
 
 # The heigtmap generator main entry point class.
 class HeightmapGenerator:
@@ -87,6 +91,8 @@ class HeightmapGenerator:
     
     file_menu.add_command(label="New", command=self.newHeightmap)
     file_menu.add_command(label="Save", command=self.save)
+    file_menu.add_command(label="Load", command=self.load)
+    file_menu.add_command(label="Export as .png", command=self.export)
     file_menu.add_command(label="Exit", command=self.root.destroy)
     
   def createHeightmapPane(self):
@@ -435,12 +441,131 @@ class HeightmapGenerator:
 
 
   def save(self):
+
+    data = ""
+    for layer_name in self.layers:
+      layer = self.layers[layer_name]
+      data += layer.name + ": " 
+      data += layer.mode.name
+      data += " "
+      serialized = str(layer)
+      data += serialized
+
+      data += "\n"
+
+    filename = tkFileDialog.asksaveasfilename(
+      initialdir = "/", 
+      title="Save heightmapp",
+      filetypes =  (("heightmap files","*.hm"),("all files","*.*"))
+    )
+
+    if filename != "":
+      if not filename.endswith(".hm"):
+        filename = filename + ".hm"
+       
+      file = open(filename, "w")
+      file.write(data)
+
+    pass
+
+  def load(self):
+    filename = tkFileDialog.askopenfilename(filetypes=(("Heightmap files", ".hm"),("all files","*.*")))
+    file = open(filename, "r")
+    contents = file.read()
+    
+
+    layers_raw = contents.split("\n")
+    for layer_raw in layers_raw:
+      layer_split = layer_raw.split(": ")
+      if len(layer_split) == 1: continue
+      print layer_split
+      layer_name = layer_split[0]
+      
+      layer_description = layer_split[1].split(" ")
+      layer_mode = layer_description[0]
+      layer_type = layer_description[1]
+
+      layer = None
+
+      if layer_type == "RandomValuesLayer":
+        print "initializing RandomValuesLayer"
+
+        layer = RandomValuesLayer(layer_name)
+
+        seed = int(layer_description[2])
+        minimum_range = int(layer_description[3])
+        maximum_range = int(layer_description[4])
+        
+        
+        layer.setSeed(seed)
+        layer.setMinimumRange(minimum_range)
+        layer.setMaximumRange(maximum_range)
+        
+      
+      if layer_type == "InterpolatedLayer":
+        print "initializing InterpolatedLayer"
+        layer = InterpolatedLayer(layer_name)
+        
+        seed = int(layer_description[2])
+        minimum_range = int(layer_description[3])
+        maximum_range = int(layer_description[4])
+        interpolation_mode = int(layer_description[5])
+        resolution = int(layer_description[6])
+        clamp_enabled = int(layer_description[7])
+        clamp_min = int(layer_description[8])
+        clamp_max = int(layer_description[9])
+        
+        layer.setSeed(seed)
+        layer.setMinimumRange(minimum_range)
+        layer.setMaximumRange(maximum_range)
+        layer.setInterpolationMode(interpolation_mode)
+        layer.setResolution(resolution)
+        layer.setClampEnabled(clamp_enabled)
+        layer.setClampBottomValue(clamp_min)
+        layer.setClampTopValue(clamp_max)
+
+      if layer_type == "SimplexLayer":
+        print "initializing SimplexLayer"
+        layer = SimplexLayer(layer_name)
+        seed = int(layer_description[2])
+        minimum_range = int(layer_description[3])
+        maximum_range = int(layer_description[4])
+        scale = int(layer_description[5])
+        clamp_enabled = int(layer_description[6])
+        clamp_min = int(layer_description[7])
+        clamp_max = int(layer_description[8])
+ 
+        layer.setSeed(seed)
+        layer.setMinimumRange(minimum_range)
+        layer.setMaximumRange(maximum_range)
+        layer.setScale(scale)
+        layer.setClampEnabled(clamp_enabled)
+        layer.setClampBottomValue(clamp_min)
+        layer.setClampTopValue(clamp_max)
+
+      #TODO set layer name and mode
+      layer.mode = LayerMode.fromName(layer_mode)
+      self.insertLayer(layer)
+      
+      print "Layer name: " + layer_name
+      print "Layer mode: " + layer_mode
+
+  def export(self):
+
+    if self.image == None:
+      self.setStatus("Please generate the heightmap before exporting")
+
     filename = tkFileDialog.asksaveasfilename(
       initialdir = "/", 
       title="Save heightmapp",
       filetypes =  (("png files","*.png"),("all files","*.*"))
     )
-    self.image.save(filename)
+
+    if filename != "":
+      if not filename.endswith(".png"):
+        filename = filename + ".png"
+      self.image.save(filename)
+    
         
 
 if __name__ == "__main__":

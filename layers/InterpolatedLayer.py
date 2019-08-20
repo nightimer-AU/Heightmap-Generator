@@ -13,6 +13,20 @@ class InterpolatedLayer(RandomValuesLayer):
     self.interpolate_gui  = InterpolationGUI()
     self.clamp_gui        = ClampGUI()         
     
+  def setInterpolationMode(self, mode):
+    self.interpolate_gui.setInterpolationMode(mode)
+ 
+  def setResolution(self, resolution):
+    self.interpolate_gui.setResolution(resolution)
+
+  def setClampEnabled(self, enabled):
+    self.clamp_gui.setEnabled(enabled)
+
+  def setClampTopValue(self, top_value):
+    self.clamp_gui.setTopValue(top_value)
+
+  def setClampBottomValue(self, bottom_value):
+    self.clamp_gui.setBottomValue(bottom_value)
 
   def layoutGUI(self, parent, heightmap=None):
     RandomValuesLayer.layoutGUI(self, parent, heightmap)
@@ -81,3 +95,17 @@ class InterpolatedLayer(RandomValuesLayer):
     layer.clamp_gui       = self.clamp_gui.duplicate()
     return layer
   
+  def __str__(self):
+    seed = str(self.seed_gui.getSeed())
+    minimum_range = str(self.range_gui.getMinimum())
+    maximum_range = str(self.range_gui.getMaximum())
+    mode = str(self.interpolate_gui.getInterpolationMode())
+    resolution = str(self.interpolate_gui.getResolution())
+    clamp_enabled = str(self.clamp_gui.isEnabled())
+    clamp_min = str(self.clamp_gui.getBottomValue())
+    clamp_max = str(self.clamp_gui.getTopValue())
+  
+    return "InterpolatedLayer"  " " + seed + " " \
+      + minimum_range + " " + maximum_range + " " \
+      + mode + " " + resolution + " " \
+      + clamp_enabled + " " + clamp_min + " " + clamp_max  
