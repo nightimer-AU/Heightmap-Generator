@@ -35,11 +35,10 @@ class HeightmapGenerator:
     root.geometry("800x800+0+0")
     
     ## Some of the intance variables:
-    w = 100
-    h = 100
+    size = 100
     
-    self.heightmap = Heightmap(w,h) # Current heightmap. 
-    self.image = PIL.Image.new("RGB", (w, h), (0,0,0))
+    self.heightmap = Heightmap(size,size) # Current heightmap. 
+    self.image = PIL.Image.new("RGB", (size, size), (0,0,0))
     self.layers_factory = LayersFactory() 
     self.layers = {} # A dictionary mapping from layer name to a layer
     self.current_layer = DummyLayer()
@@ -99,11 +98,14 @@ class HeightmapGenerator:
     hm_frame = LabelFrame(self.left, text="Heightmap")
     hm_frame.pack(fill=X, ipadx=5, ipady=5)
 
-    hm_width  = self.heightmap.getWidth()
-    hm_height = self.heightmap.getHeight()
-    dims_txt = "Width:%d Height:%d" % (hm_width, hm_height)
+    hm_size  = self.heightmap.getWidth()
+    
+    dims_txt = "Size: %d " % (hm_size)
     self.hm_dims = Label(hm_frame, text=dims_txt )
     self.hm_dims.pack()
+
+    change_size_button = Button(hm_frame, text="Change size", command=self.askHeightmapSize)
+    change_size_button.pack()
  
   def createLayersPane(self):
     # Create the layers-pane frame:
@@ -211,14 +213,20 @@ class HeightmapGenerator:
     canvas.create_image(0,0, image=img)
   
   def newHeightmap(self):
-    dialog = HeightmapDialog(self.root)
+    '''dialog = HeightmapDialog(self.root)
     width  = dialog.width
     height = dialog.height
-    
-    self.heightmap = Heightmap(width, height)
-    self.image = PIL.Image.new("RGB", (width, height), (0,0,0))
+    '''
+
+    dialog = TextDialog(self.root, "Heightmap size", "Please enter the heightmap size", 100) 
+    size = int(dialog.getValue())
+    if dialog.OK:
+      self.heightmap = Heightmap(size, size)
+      self.image = PIL.Image.new("RGB", (size, size), (0,0,0))
   
-    self.hm_dims["text"] = "W:%d H:%d" % (width, height)
+      self.hm_dims["text"] = "Size: %d" % (size)
+      self.layers = {}
+      self.layer_list.delete(0, END)
       
   def newLayer(self):
     selection = self.layer_list.curselection()
@@ -360,8 +368,23 @@ class HeightmapGenerator:
     sel = self.layer_list.curselection()
     if len(sel) == 0: return False
     else: return True
+  
+  def askHeightmapSize(self):
+    hm_size = self.heightmap.getWidth()
+    dialog = TextDialog(
+      self.root, 
+      "Change heightmap size", 
+      "Please enter new heightmap size", str(hm_size))
+
+    if dialog.OK:
+      size = int(dialog.getValue())
+      self.setHeightmapSize(size)
+
+  def setHeightmapSize(self, size):
+    self.heightmap = Heightmap(size, size)
+    self.hm_dims["text"] = "Size: " + str(size)
     
-    
+
   def generateHeightmap(self):
     l_list = self.layer_list.get(0,END)
     n_layers = len(l_list)
@@ -438,8 +461,10 @@ class HeightmapGenerator:
 
 
   def save(self):
-
     data = ""
+    hm_size = self.heightmap.getWidth()
+    data += "Heightmap: " + str(hm_size) + "\n"
+    
     for layer_name in self.layers:
       layer = self.layers[layer_name]
       data += layer.name + ": " 
@@ -467,12 +492,21 @@ class HeightmapGenerator:
 
   def load(self):
     filename = tkFileDialog.askopenfilename(filetypes=(("Heightmap files", ".hm"),("all files","*.*")))
+    if filename == "": 
+      return
+
     file = open(filename, "r")
     contents = file.read()
     
+    lines_raw = contents.split("\n")
 
-    layers_raw = contents.split("\n")
-    for layer_raw in layers_raw:
+    heightmap_size = int(lines_raw[0].split(": ")[1])
+    self.setHeightmapSize(heightmap_size)
+
+    #print "Heightmap size is: %d" % (heightmap_size)
+
+    for i in range(1, len(lines_raw)):
+      layer_raw = lines_raw[i]
       layer_split = layer_raw.split(": ")
       if len(layer_split) == 1: continue
       layer_name = layer_split[0]
