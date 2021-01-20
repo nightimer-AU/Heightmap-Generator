@@ -206,7 +206,7 @@ class Array2D():
 
 
 
-from Tkinter import *
+from tkinter import *
 
 def printSep(name):
   print("**************** " + name + " ****************" )

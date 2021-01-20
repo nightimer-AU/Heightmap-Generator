@@ -9,7 +9,7 @@ from layers.LayerMode      import *
 from utils   import *
 
 from random  import *
-from Tkinter import *
+from tkinter import *
 
 from noise   import *
 from utils   import *

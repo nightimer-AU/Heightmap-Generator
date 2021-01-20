@@ -1,9 +1,9 @@
 #from layers import *
+from tkinter.messagebox import showerror
 
 from layers.Layers import *
 
-from tkMessageBox import showerror
-from Tkinter import *
+from tkinter import *
 
 from PIL import Image, ImageTk
 

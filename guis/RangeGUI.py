@@ -1,7 +1,7 @@
 from array2d import *
 
 from random  import *
-from Tkinter import *
+from tkinter import *
 
 
 # Range GUI allows to set a base value and the delta around the

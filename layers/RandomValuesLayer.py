@@ -1,8 +1,8 @@
-from Layer import Layer
 
 from guis.SeedingGUI import SeedingGUI
 from guis.RangeGUI   import RangeGUI
 from array2d 				 import *
+from layers.Layer import Layer
 from utils					 import *
 
 # Layer with random values
