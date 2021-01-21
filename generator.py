@@ -1,9 +1,8 @@
 from __future__ import division
 
 import tkinter
-from tkinter import *
-from tkinter.messagebox import showwarning
 from tkinter import filedialog
+from tkinter.messagebox import showwarning
 
 import PIL
 from PIL import Image
@@ -180,7 +179,7 @@ class HeightmapGenerator:
         self.layer_mode = StringVar(self.layer_settings)
         self.layer_mode.set("Add")
         lm_combo = OptionMenu(lm_frame, self.layer_mode,
-                              "Add", "Subtract", "Multiply", "Divide", "Mix",
+                              "Add", "Subtract", "Multiply", "Divide", "Mix", "ColorDodge", "Screen",
                               command=self.setLayerMode
                               )
         lm_combo.pack(side=LEFT)

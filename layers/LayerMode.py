@@ -22,6 +22,8 @@ class LayerMode():
         if name == "Multiply": new_mode = MultiplyLayerMode()
         if name == "Divide":   new_mode = DivideLayerMode()
         if name == "Mix":      new_mode = MixLayerModel()
+        if name == "ColorDodge": new_mode = ColorDodgeLayerMode()
+        if name == "Screen": new_mode = ScreenLayerMode()
         return new_mode
 
 
@@ -78,3 +80,25 @@ class MixLayerModel(LayerMode):
 
     def getName(self):
         return "Mix"
+
+
+class ColorDodgeLayerMode(LayerMode):
+    def __init__(self):
+        LayerMode.__init__(self, "ColorDodge")
+
+    def apply(self, cum_h, layer_h):
+        return layer_h / (1 - cum_h)
+
+    def getName(self):
+        return "ColorDodge"
+
+
+class ScreenLayerMode(LayerMode):
+    def __init__(self):
+        LayerMode.__init__(self, "Screen")
+
+    def apply(self, cum_h, layer_h):
+        return 1 - (1 - cum_h) * (1 - layer_h)
+
+    def getName(self):
+        return "Screen"
