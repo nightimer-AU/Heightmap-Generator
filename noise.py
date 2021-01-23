@@ -168,10 +168,10 @@ class SimplexNoise(BaseNoise):
         y0 = y - (j - t)
 
         if x0 > y0:
-            i1 = 1;
+            i1 = 1
             j1 = 0  # Lower triangle, XY order: (0,0)->(1,0)->(1,1)
         else:
-            i1 = 0;
+            i1 = 0
             j1 = 1  # Upper triangle, YX order: (0,0)->(0,1)->(1,1)
 
         x1 = x0 - i1 + _G2  # Offsets for middle corner in (x,y) unskewed coords
@@ -228,24 +228,24 @@ class SimplexNoise(BaseNoise):
         # Determine which simplex we are in.
         if x0 >= y0:
             if y0 >= z0:
-                i1 = 1;
-                j1 = 0;
+                i1 = 1
+                j1 = 0
                 k1 = 0
-                i2 = 1;
-                j2 = 1;
+                i2 = 1
+                j2 = 1
                 k2 = 0
             elif x0 >= z0:
-                i1 = 1;
-                j1 = 0;
+                i1 = 1
+                j1 = 0
                 k1 = 0
-                i2 = 1;
-                j2 = 0;
+                i2 = 1
+                j2 = 0
                 k2 = 1
             else:
-                i1 = 0;
-                j1 = 0;
+                i1 = 0
+                j1 = 0
                 k1 = 1
-                i2 = 1;
+                i2 = 1
                 j2 = 0;
                 k2 = 1
         else:  # x0 < y0

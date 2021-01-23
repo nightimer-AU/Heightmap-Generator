@@ -29,5 +29,5 @@ class ScaleGUI():
         self.value_slider.pack()
 
     def duplicate(self):
-        gui = ScaleGUI(self.label, self.min_val, self.max_val, self.value.get())
+        gui = ScaleGUI(self.label, self.min, self.max, self.value.get())
         return gui

@@ -74,8 +74,8 @@ class SimplexLayer(Layer):
 
         if is_clamping_enabled:
 
-            max_val = self.clamp_gui.getTopValue();
-            min_val = self.clamp_gui.getBottomValue();
+            max_val = self.clamp_gui.getTopValue()
+            min_val = self.clamp_gui.getBottomValue()
 
             if not max_val < min_val:  # Clamp only when possible
                 val = clamp(val, min_val, max_val)

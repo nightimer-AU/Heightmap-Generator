@@ -1,6 +1,3 @@
-from array2d import *
-
-from random import *
 from tkinter import *
 
 

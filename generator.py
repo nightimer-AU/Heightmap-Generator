@@ -14,7 +14,7 @@ from layers.InterpolatedLayer import *
 from layers.SimplexLayer import *
 
 
-# The heigtmap generator main entry point class.
+# The heightmap generator main entry point class.
 class HeightmapGenerator:
     def __init__(self):
 
@@ -480,7 +480,7 @@ class HeightmapGenerator:
         pass
 
     def load(self):
-        filename = tkinter.askopenfilename(filetypes=(("Heightmap files", ".hm"), ("all files", "*.*")))
+        filename = tkinter.filedialog.askopenfilename(filetypes=(("Heightmap files", ".hm"), ("all files", "*.*")))
         if filename == "":
             return
 

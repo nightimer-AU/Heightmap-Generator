@@ -49,7 +49,7 @@ class Layer():
                 own_h = own_values.get(x, y)
                 cum_h = cumulative.get(x, y)
                 new_h = self.mode.apply(cum_h, own_h)
-                new_h = clamp(new_h, 0, 255);
+                new_h = clamp(new_h, 0, 255)
                 cumulative.set(x, y, new_h)
 
     # Get the values depending on the received context
